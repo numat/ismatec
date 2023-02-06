@@ -49,6 +49,14 @@ class Pump(object):
         self.stop()
         self.hw.setRunningStatus(False, self.channels)
 
+    async def __aenter__(self):
+        """Asynchronously connect with the context manager."""
+        return self
+
+    async def __aexit__(self, *args):
+        """Provide exit to the context manager."""
+        self.hw._stop_event.set()
+
     ####################################################################
     # Properties or setters/getters                                    #
     # one per channel for the ones that have the channel kwarg.        #
@@ -58,7 +66,7 @@ class Pump(object):
         """Return the pump model, firmware version, and pump head type code."""
         return self.hw.query(b'1#').strip()
 
-    def getFlowrate(self, channel):
+    async def getFlowrate(self, channel):
         """Return the current flowrate of the specified channel."""
         assert channel in self.channels
         reply = self.hw.query(b'%df' % channel)

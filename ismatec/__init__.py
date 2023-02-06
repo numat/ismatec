@@ -9,6 +9,7 @@ from ismatec.driver import Pump
 def command_line(args=None):
     """CLI interface, accessible when installed through pip."""
     import argparse
+    import asyncio
     import json
 
     parser = argparse.ArgumentParser(description="Control a RegloICC pump"
@@ -22,10 +23,14 @@ def command_line(args=None):
                         help="Specify channel in case of multiple-channel pump.")
     args = parser.parse_args(args)
 
-    pump = Pump(address=(args.address, args.port), timeout=.2)
-    d = pump.getFlowrate(args.channel)
-    print(json.dumps(d, indent=4))
-    pump.hw._stop_event.set()
+    async def run():
+        async with Pump(address=(args.address, args.port), timeout=.2) as pump:
+            d = await pump.getFlowrate(args.channel)
+            print(json.dumps(d, indent=4))
+
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(run())
+    loop.close()
     return
 
 
