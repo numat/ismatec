@@ -3,6 +3,7 @@ import select
 import socket
 import threading
 import time
+from abc import abstractmethod
 from queue import Queue
 
 import serial
@@ -80,17 +81,20 @@ class Communicator(threading.Thread):
         self.debug("got response '%s'" % result)
         return result
 
+    @abstractmethod
     def init(self):
         """Override in subclass."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def loop(self):
         """Override in subclass."""
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def close(self):
         """Override in subclass."""
-        raise NotImplementedError
+        pass
 
     def join(self, timeout=None):
         """Stop the thread."""
