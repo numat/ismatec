@@ -1,5 +1,5 @@
 """A single Ismatec Reglo ICC multi-channel peristaltic pump, class and usage example."""
-from .Communicator import SerialCommunicator, SocketCommunicator
+from .util import SerialCommunicator, SocketCommunicator
 
 
 class Pump(object):
@@ -8,11 +8,7 @@ class Pump(object):
 
     It can be controlled over a serial server (gateway) or direct serial.
 
-    This class directly reflects the Tango interface: public set/get
-    methods or properties reflect Tango attributes and others represent
-    Tango commands. For channel-dependent properties, the Tango device
-    should expose an attribute for each channel. The channel labels are
-    available as self.channels.
+    The, which can be controlled independently, are available as self.channels.
     """
 
     def __init__(self, debug=False, address=None, **kwargs):
@@ -54,7 +50,7 @@ class Pump(object):
         self.hw.setRunningStatus(False, self.channels)
 
     ####################################################################
-    # Properties or setters/getters to be exposed as Tango attributes, #
+    # Properties or setters/getters                                    #
     # one per channel for the ones that have the channel kwarg.        #
     ####################################################################
 
@@ -91,10 +87,6 @@ class Pump(object):
             return allgood
         return self.hw.command(b'%d+%s' % (channel, self._discrete2(diam)))
 
-    ###########################################
-    # Methods to be exposed as Tango commands #
-    ###########################################
-
     def continuousFlow(self, rate, channel=None):
         """
         Start continuous flow at rate (ml/min) on specified channel.
@@ -122,7 +114,7 @@ class Pump(object):
         if abs(rate) > maxrate:
             rate = rate / abs(rate) * maxrate
         self.hw.query(b'%df%s' % (channel, self._volume2(rate)))
-        # make sure the running status gets set from the start to avoid later Sardana troubles
+        # make sure the running status gets set from the start
         self.hw.setRunningStatus(True, channel)
         # start
         self.hw.command(b'%dH' % channel)
@@ -236,9 +228,9 @@ class Pump(object):
         self.hw.setRunningStatus(False, channel)
         return self.hw.command(b'%dI' % channel)
 
-    ##########################################
-    # Helper methods, not for Tango exposure #
-    ##########################################
+    ##################
+    # Helper methods #
+    ##################
     def _time1(self, number, units='s'):
         """Convert number to 'time type 1'.
 
@@ -289,19 +281,3 @@ class Pump(object):
         6 digits, 0 to 999999, left-padded with zeroes
         """
         return str(number).zfill(6).encode()
-
-
-def example_usage():
-    """Provide an example usage."""
-    import time
-    # p = Pump(address='/dev/ttyUSB0', debug=True)
-    p = Pump(address=('b-nanomax-pump-tmpdev-0', 4001), debug=True, timeout=.2)
-    p.setTubingInnerDiameter(3.17)
-    p.continuousFlow(rate=25, channel=1)
-    p.dispense_at_rate(vol=1, rate=25, channel=2)
-    t0 = time.time()
-    while time.time() - t0 < 10:
-        print([p.getRunning(channel=i) for i in p.channels])
-        time.sleep(.5)
-    p.stop()
-    print([p.getRunning(channel=i) for i in p.channels])

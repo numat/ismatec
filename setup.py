@@ -24,6 +24,9 @@ setup(
     install_requires=[
         "pyserial",
     ],
+    entry_points={
+        "console_scripts": [("ismatec = ismatec:command_line")]
+    },
     classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
