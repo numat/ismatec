@@ -218,7 +218,7 @@ class Pump(object):
         self.hw.query(b'%df%s' % (channel, self._volume2(rate)))
         # set time.  Note: if the time is too short, the pump will not start.
         self.hw.query(b'%dxT%s' % (channel, self._time2(time, units='m')))
-        # make sure the running status gets set from the start to avoid later Sardana troubles
+        # make sure the running status gets set from the start
         self.hw.setRunningStatus(True, channel)
         # start
         self.hw.command(b'%dH' % channel)
