@@ -1,4 +1,4 @@
-"""A single Ismatec Reglo ICC multi-channel peristaltic pump, class and usage example."""
+"""A single Ismatec Reglo ICC multi-channel peristaltic pump class."""
 from .util import SerialCommunicator, SocketCommunicator
 
 

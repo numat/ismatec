@@ -1,10 +1,11 @@
 """Serial or Socket (serial gateway) interfaces for Ismatec Reglo ICC peristaltic pump."""
-import threading
-from queue import Queue
-import serial
-import socket
-import time
 import select
+import socket
+import threading
+import time
+from queue import Queue
+
+import serial
 
 
 class Communicator(threading.Thread):
