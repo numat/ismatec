@@ -79,7 +79,7 @@ class Pump(object):
     def getRunning(self, channel):
         """Return True if the specified channel is running."""
         assert channel in self.channels
-        return self.hw.running[channel]
+        return self.hw.running[channel - 1]
 
     def getTubingInnerDiameter(self, channel):
         """Return the set peristaltic tubing inner diameter on the specified channel, in mm."""

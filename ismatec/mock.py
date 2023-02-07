@@ -1,7 +1,5 @@
 """Contains mocks for driver objects for offline testing."""
 
-import asyncio
-from random import uniform
 from unittest.mock import MagicMock
 
 from .driver import Pump as RealPump
@@ -59,7 +57,7 @@ class Communicator(MagicMock):
             self.state[channel - 1]['flowrate'] = float(command[1:])
         elif command == 'xD':  # get rotation direction
             cw = self.state[channel - 1]['direction'] == 'clockwise'
-            return 'K' if cw else 'J'
+            return 'J' if cw else 'K'
         else:
             raise NotImplementedError
 
@@ -73,6 +71,10 @@ class Communicator(MagicMock):
             self.state[channel - 1]['direction'] = 'counterclockwise'
         elif command == 'J':  # set to CW rotation
             self.state[channel - 1]['direction'] = 'clockwise'
+        elif command == 'H':  # start
+            self.running[channel - 1] = True
+        elif command == 'I':  # stop
+            self.running[channel - 1] = False
         else:
             raise NotImplementedError
         return '*'
