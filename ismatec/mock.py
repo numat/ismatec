@@ -27,6 +27,7 @@ class Pump(RealPump):
             {
                 'channel': c,
                 'flowrate': 1.0 * c,
+                'direction': 'clockwise',
             }
             for c in self.channels]
         self.hw = Communicator()
@@ -50,7 +51,28 @@ class Communicator(MagicMock):
         """Mock replies to queries."""
         channel = int(command[0])
         if channel not in self.channels:
-            raise NotImplementedError
+            raise ValueError
         command = command[1:]
         if command == 'f':  # getFlowrate
             return float(self.state[channel - 1]['flowrate'])
+        elif command.startswith('f'):  # set flowrate (in mL/min)
+            self.state[channel - 1]['flowrate'] = float(command[1:])
+        elif command == 'xD':  # get rotation direction
+            cw = self.state[channel - 1]['direction'] == 'clockwise'
+            return 'K' if cw else 'J'
+        else:
+            raise NotImplementedError
+
+    def command(self, command):
+        """Mock commands."""
+        channel = int(command[0])
+        if channel not in self.channels:
+            raise ValueError
+        command = command[1:]
+        if command == 'K':  # set to CCW rotation
+            self.state[channel - 1]['direction'] = 'counterclockwise'
+        elif command == 'J':  # set to CW rotation
+            self.state[channel - 1]['direction'] = 'clockwise'
+        else:
+            raise NotImplementedError
+        return '*'
