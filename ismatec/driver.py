@@ -69,7 +69,7 @@ class Pump(object):
     async def getFlowrate(self, channel):
         """Return the current flowrate of the specified channel."""
         assert channel in self.channels
-        reply = self.hw.query('%df' % channel)
+        reply = self.hw.query(f'{channel}f')
         return float(reply) if reply else 0
 
     def getRunning(self, channel):
@@ -80,7 +80,7 @@ class Pump(object):
     def getTubingInnerDiameter(self, channel):
         """Return the set peristaltic tubing inner diameter on the specified channel, in mm."""
         assert channel in self.channels
-        return float(self.hw.query('%d+' % channel).split(' ')[0])
+        return float(self.hw.query(f'{channel}+').split(' ')[0])
 
     def setTubingInnerDiameter(self, diam, channel=None):
         """
@@ -93,7 +93,7 @@ class Pump(object):
             for ch in self.channels:
                 allgood = allgood and self.setTubingInnerDiameter(diam, channel=ch)
             return allgood
-        return self.hw.command('%d+%s' % (channel, self._discrete2(diam)))
+        return self.hw.command(f'{channel}+{self._discrete2(diam)}')
 
     def continuousFlow(self, rate, channel=None):
         """
@@ -106,26 +106,26 @@ class Pump(object):
             channel = 0
             maxrates = []
             for ch in self.channels:
-                maxrates.append(float(self.hw.query('%d?' % ch).split(' ')[0]))
+                maxrates.append(float(self.hw.query(f'{ch}?').split(' ')[0]))
             maxrate = min(maxrates)
         else:
-            maxrate = float(self.hw.query('%d?' % channel).split(' ')[0])
+            maxrate = float(self.hw.query(f'{channel}?').split(' ')[0])
         assert channel in self.channels or channel == 0
         # flow rate mode
-        self.hw.command('%dM' % channel)
+        self.hw.command(f'{channel}M')
         # set flow direction.  K=clockwise, J=counterclockwise
         if rate < 0:
-            self.hw.command('%dK' % channel)
+            self.hw.command(f'{channel}K')
         else:
-            self.hw.command('%dJ' % channel)
+            self.hw.command(f'{channel}J')
         # set flow rate
         if abs(rate) > maxrate:
             rate = rate / abs(rate) * maxrate
-        self.hw.query('%df%s' % (channel, self._volume2(rate)))
+        self.hw.query(f'{channel}f{self._volume2(rate)}')
         # make sure the running status gets set from the start
         self.hw.setRunningStatus(True, channel)
         # start
-        self.hw.command('%dH' % channel)
+        self.hw.command(f'{channel}H')
 
     def dispense_vol_at_rate(self, vol, rate, units='ml/min', channel=None):
         """
@@ -141,36 +141,36 @@ class Pump(object):
             channel = 0
             maxrates = []
             for ch in self.channels:
-                maxrates.append(float(self.hw.query('%d?' % ch).split(' ')[0]))
+                maxrates.append(float(self.hw.query(f'{ch}?').split(' ')[0]))
             maxrate = min(maxrates)
         else:
-            maxrate = float(self.hw.query('%d?' % channel).split(' ')[0])
+            maxrate = float(self.hw.query(f'{channel}?').split(' ')[0])
         assert channel in self.channels or channel == 0
         # volume at rate mode
-        self.hw.command('%dO' % channel)
+        self.hw.command(f'{channel}O')
         # make volume positive
         if vol < 0:
             vol *= -1
             rate *= -1
         # set flow direction
         if rate < 0:
-            self.hw.command('%dK' % channel)
+            self.hw.command(f'{channel}K')
         else:
-            self.hw.command('%dJ' % channel)
+            self.hw.command(f'{channel}J')
         # set flow rate
         if abs(rate) > maxrate:
             rate = rate / abs(rate) * maxrate
-        self.hw.query('%df%s' % (channel, self._volume2(rate)))
+        self.hw.query(f'{channel}f{self._volume2(rate)}')
         if units == 'rpm':
-            self.hw.command('%dS%s' % (channel, self._discrete3(rate * 100)))
+            self.hw.command(f'{channel}S{self._discrete3(rate * 100)}')
         else:
-            self.hw.query('%df%s' % (channel, self._volume2(rate)))
+            self.hw.query(f'{channel}f{self._volume2(rate)}')
         # set volume
-        self.hw.query('%dv%s' % (channel, self._volume2(vol)))
+        self.hw.query(f'{channel}v{self._volume2(vol)}')
         # make sure the running status gets set from the start to avoid later Sardana troubles
         self.hw.setRunningStatus(True, channel)
         # start
-        self.hw.command('%dH' % channel)
+        self.hw.command(f'{channel}H')
 
     def dispense_vol_over_time(self, vol, time, channel=0):
         """
@@ -180,21 +180,21 @@ class Pump(object):
         """
         assert channel in self.channels or channel == 0
         # volume over time mode
-        self.hw.command('%dG' % channel)
+        self.hw.command(f'{channel}G')
         # set flow direction
         if vol < 0:
-            self.hw.command('%dK' % channel)
+            self.hw.command(f'{channel}K')
             vol *= -1
         else:
-            self.hw.command('%dJ' % channel)
+            self.hw.command(f'{channel}J')
         # set volume
-        self.hw.query('%dv%s' % (channel, self._volume2(vol)))
+        self.hw.query(f'{channel}v{self._volume2(vol)}')
         # set time.  Note: if the time is too short, the pump will not start.
-        self.hw.query('%dxT%s' % (channel, self._time2(time, units='m')))
+        self.hw.query(f"{channel}xT{self._time2(time, units='m')}")
         # make sure the running status gets set from the start to avoid later Sardana troubles
         self.hw.setRunningStatus(True, channel)
         # start
-        self.hw.command('%dH' % channel)
+        self.hw.command(f'{channel}H')
 
     def dispense_flow_over_time(self, rate, time, units='ml/min', channel=0):
         """
@@ -206,22 +206,22 @@ class Pump(object):
         assert channel in self.channels or channel == 0
         # set flow direction
         if rate < 0:
-            self.hw.command('%dK' % channel)
+            self.hw.command(f'{channel}K')
             rate *= -1
         else:
-            self.hw.command('%dJ' % channel)
+            self.hw.command(f'{channel}J')
         # set to flowrate mode first, otherwise Time mode uses RPMs
-        self.hw.query('%dM' % channel)
+        self.hw.query(f'{channel}M')
         # Set to flowrate over time ("Time") mode
-        self.hw.command('%dN' % channel)
+        self.hw.command(f'{channel}N')
         # set flowrate
-        self.hw.query('%df%s' % (channel, self._volume2(rate)))
+        self.hw.query(f'{channel}f{self._volume2(rate)}')
         # set time.  Note: if the time is too short, the pump will not start.
-        self.hw.query('%dxT%s' % (channel, self._time2(time, units='m')))
+        self.hw.query(f"{channel}xT{self._time2(time, units='m')}")
         # make sure the running status gets set from the start
         self.hw.setRunningStatus(True, channel)
         # start
-        self.hw.command('%dH' % channel)
+        self.hw.command(f'{channel}H')
 
     def stop(self, channel=None):
         """
@@ -234,7 +234,7 @@ class Pump(object):
         assert channel in self.channels or channel == 0
         # doing this misses the asynchronous stop signal, so set manually
         self.hw.setRunningStatus(False, channel)
-        return self.hw.command('%dI' % channel)
+        return self.hw.command(f'{channel}I')
 
     ##################
     # Helper methods #
@@ -267,13 +267,13 @@ class Pump(object):
 
     def _volume2(self, number):
         # convert number to "volume type 2"
-        number = '%.3e' % abs(number)
+        number = f'{abs(number):.3e}'
         number = number[0] + number[2:5] + number[-3] + number[-1]
         return number
 
     def _volume1(self, number):
         # convert number to "volume type 1"
-        number = '%.3e' % abs(number)
+        number = f'{abs(number):.3e}'
         number = number[0] + number[2:5] + 'E' + number[-3] + number[-1]
         return number
 

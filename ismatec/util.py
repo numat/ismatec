@@ -44,16 +44,16 @@ class Communicator(threading.Thread):
     def setRunningStatus(self, status, channel):
         """Manually set running status."""
         if type(channel) == list or type(channel) == tuple:
-            self.debug('manually setting running status %s on channels %s' % (status, channel))
+            self.debug(f'manually setting running status {status} on channels {channel}')
             for ch in channel:
                 self.running[ch] = status
         elif channel == 0:
-            self.debug('manually setting running status %s on all channels (found %s)' %
-                       (status, list(self.running.keys())))
+            self.debug(f'manually setting running status {status} on all channels (found %s)' %
+                       list(self.running.keys()))
             for ch in list(self.running.keys()):
                 self.running[ch] = status
         else:
-            self.debug('manually setting running status %s on channel %d' % (status, channel))
+            self.debug(f'manually setting running status {status} on channel {channel}')
             self.running[channel] = status
 
     def run(self):
@@ -64,21 +64,21 @@ class Communicator(threading.Thread):
 
     def command(self, cmd):
         """Place a command in the request queue and return the response."""
-        self.debug("writing command '%s' to %s" % (cmd, self.address))
+        self.debug(f"writing command '{cmd}' to {self.address}")
         self.req_q.put(cmd)
         result = self.res_q.get()
         if result == '*':
             return True
         else:
-            self.debug('WARNING: command %s returned %s' % (cmd, result))
+            self.debug(f'WARNING: command {cmd} returned {result}')
             return False
 
     def query(self, cmd):
         """Place a query in the request queue and return the response."""
-        self.debug("writing query '%s' to %s" % (cmd, self.address))
+        self.debug(f"writing query '{cmd}' to {self.address}")
         self.req_q.put(cmd)
         result = self.res_q.get().strip()
-        self.debug("got response '%s'" % result)
+        self.debug(f"got response '{result}'")
         return result
 
     @abstractmethod
@@ -127,7 +127,7 @@ class SerialCommunicator(Communicator):
             # empty the ingoing buffer
             flush = self.ser.read(100)
             if flush:
-                self.debug('flushed garbage before query: "%s"' % flush)
+                self.debug(f'flushed garbage before query: "{flush}"')
             # write command and get result
             cmd = self.que_q.get()
             self.ser.command(cmd.encode() + b'\r')
@@ -191,7 +191,7 @@ class SocketCommunicator(Communicator):
             # empty the ingoing buffer
             flush = self.timeout_recv(100)
             if flush:
-                self.debug('flushed garbage before query: "%s"' % flush)
+                self.debug(f'flushed garbage before query: "{flush}"')
             # write command and get result
             cmd = self.req_q.get()
             self.socket.send(cmd.encode() + b'\r')
@@ -211,7 +211,7 @@ class SocketCommunicator(Communicator):
                     ch = int(line[2])
                     self.running[ch] = False
             except IndexError:
-                self.debug('received message: "%s"' % line)
+                self.debug(f'received message: "{line}"')
 
     def close(self):
         """Release resources."""
