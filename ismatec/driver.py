@@ -1,5 +1,9 @@
 """A single Ismatec Reglo ICC multi-channel peristaltic pump class."""
+import logging
+
 from .util import SerialCommunicator, SocketCommunicator
+
+logger = logging.getLogger('ismatec')
 
 
 class Pump(object):
@@ -16,10 +20,10 @@ class Pump(object):
         # make a hardware Communicator object
         if type(address) == str:
             # serial
-            self.hw = SerialCommunicator(address=address, debug=debug, **kwargs)
+            self.hw = SerialCommunicator(address=address, **kwargs)
         elif type(address) == tuple and len(address) == 2:
             # socket
-            self.hw = SocketCommunicator(address=address, debug=debug, **kwargs)
+            self.hw = SocketCommunicator(address=address, **kwargs)
         else:
             raise RuntimeError('Specify serial device or (host, port) tuple!')
         self.hw.start()
