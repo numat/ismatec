@@ -31,9 +31,6 @@ class Pump(object):
         # Assign address 1 to pump
         self.hw.command('@1')
 
-        # Set everything to default
-        self.hw.command('10')
-
         # Enable independent channel addressing
         self.hw.command('1~1')
 
@@ -98,6 +95,10 @@ class Pump(object):
                 allgood = allgood and self.setTubingInnerDiameter(diam, channel=ch)
             return allgood
         return self.hw.command(f'{channel}+{self._discrete2(diam)}')
+
+    async def resetDefaultSettings(self):
+        """Reset all user configurable data to default values."""
+        return self.hw.command('10')  # '1' is a pump address, not channel
 
     def continuousFlow(self, rate, channel=None):
         """

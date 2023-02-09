@@ -63,6 +63,12 @@ class Communicator(MagicMock):
 
     def command(self, command):
         """Mock commands."""
+        if command == '10':  # reset all settings
+            for channel, _ in enumerate(self.channels):
+                self.state[channel]['direction'] = 'clockwise'
+                self.state[channel]['flowrate'] = 0.0
+                self.running[channel] = False
+            return
         channel = int(command[0])
         if channel not in self.channels:
             raise ValueError

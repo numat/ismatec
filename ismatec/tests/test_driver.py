@@ -61,3 +61,13 @@ async def test_start_stop_roundtrip():
         assert await device.getRunning(2) is True
         await device.stop(2)
         assert await device.getRunning(2) is False
+
+
+async def test_reset():
+    """Confirm resetting user-configurable data works."""
+    async with Pump('fakeip') as device:
+        # FIXME the Pump class has no setRotation method yet
+        device.hw.command('1K')  # counterclockwise
+        assert 'K' == device.hw.query('1xD')
+        await device.resetDefaultSettings()
+        assert 'J' == device.hw.query('1xD')
