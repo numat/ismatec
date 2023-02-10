@@ -33,6 +33,17 @@ async def test_flowrate_roundtrip():
         assert flow_sp_2 == await device.getFlowrate(2)
 
 
+async def test_speed_roundtrip():
+    """Confirm that setting/getting speed (RPM) works."""
+    async with Pump('fakeip') as device:
+        speed_sp_1 = round(uniform(1, 100), 2)
+        speed_sp_2 = round(uniform(1, 100), 2)
+        await device.setSpeed(channel=1, rpm=speed_sp_1)
+        await device.setSpeed(channel=2, rpm=speed_sp_2)
+        assert speed_sp_1 == await device.getSpeed(1)
+        assert speed_sp_2 == await device.getSpeed(2)
+
+
 async def test_rotation_roundtrip():
     """Confirm setting/getting flow direction works."""
     async with Pump('fakeip') as device:
