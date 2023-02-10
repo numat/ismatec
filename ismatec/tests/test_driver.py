@@ -57,16 +57,16 @@ async def test_start_stop_roundtrip():
     async with Pump('fakeip') as device:
         # FIXME the Pump class has no start method yet
         device.hw.command('1H')
-        assert device.getRunning(1) is True
-        assert await device.getRunning(2) is False
+        assert device.get_running(1) is True
+        assert await device.get_running(2) is False
         await device.start(2)
-        assert await device.getRunning(2) is True
+        assert await device.get_running(2) is True
 
         device.stop(1)
-        assert device.getRunning(1) is False
-        assert await device.getRunning(2) is True
+        assert device.get_running(1) is False
+        assert await device.get_running(2) is True
         await device.stop(2)
-        assert await device.getRunning(2) is False
+        assert await device.get_running(2) is False
 
 
 @pytest.mark.skip
@@ -74,15 +74,15 @@ async def test_pause_pumping():
     """Confirm pausing pumping works."""
     channel = choice([1, 2, 3, 4])
     async with Pump('fakeip') as device:
-        await device.setMode(channel, Protocol.Mode.RPM)
+        await device.set_mode(channel, Protocol.Mode.RPM)
         await device.start(channel)
         await device.pause(channel)  # Pause = cancel in RPM mode
-        assert await device.getRunning(1) is False
-        await device.setMode(channel, Protocol.Mode.VOL_AT_RATE)
+        assert await device.get_running(1) is False
+        await device.set_mode(channel, Protocol.Mode.VOL_AT_RATE)
         await device.start(channel)
         await device.pause(channel)
         await device.pause(channel)  # unpause
-        assert await device.getRunning(channel)
+        assert await device.get_running(channel)
 
 
 async def test_rotation_roundtrip():
@@ -92,9 +92,9 @@ async def test_rotation_roundtrip():
         rotation_2 = choice(['counterclockwise', 'clockwise'])
         # FIXME the Pump class has no setRotation method yet
         device.hw.command(f'1{rotation_1}')
-        await device.setRotation(channel=2, rotation=rotation_2)
+        await device.set_rotation(channel=2, rotation=rotation_2)
         assert rotation_1 == device.hw.query('1xD')
-        assert rotation_2 == await device.getRotation(channel=2)
+        assert rotation_2 == await device.get_rotation(channel=2)
 
 
 async def test_cannot_run_responses():
@@ -109,8 +109,8 @@ async def test_modes(mode):
     """Confirm setting/getting modes works."""
     async with Pump('fakeip') as device:
         channel = choice([1, 2, 3, 4])
-        await device.setMode(channel, mode)
-        assert mode.name == await device.getMode(channel)
+        await device.set_mode(channel, mode)
+        assert mode.name == await device.get_mode(channel)
 
 
 async def test_setpoint_type_roundtrip():
@@ -128,10 +128,10 @@ async def test_speed_roundtrip():
     async with Pump('fakeip') as device:
         sp_1 = randint(1, 100)
         sp_2 = randint(1, 100)
-        await device.setSpeed(channel=1, rpm=sp_1)
-        await device.setSpeed(channel=2, rpm=sp_2)
-        assert sp_1 == await device.getSpeed(1)
-        assert sp_2 == await device.getSpeed(2)
+        await device.set_speed(channel=1, rpm=sp_1)
+        await device.set_speed(channel=2, rpm=sp_2)
+        assert sp_1 == await device.get_speed(1)
+        assert sp_2 == await device.get_speed(2)
 
 
 async def test_flowrate_roundtrip():
@@ -139,10 +139,10 @@ async def test_flowrate_roundtrip():
     async with Pump('fakeip') as device:
         flow_sp_1 = round(uniform(1, 10), 1)
         flow_sp_2 = round(uniform(1, 10), 1)
-        await device.setFlowrate(channel=1, flowrate=flow_sp_1)
-        await device.setFlowrate(channel=2, flowrate=flow_sp_2)
-        assert flow_sp_1 == await device.getFlowrate(1)
-        assert flow_sp_2 == await device.getFlowrate(2)
+        await device.set_flowrate(channel=1, flowrate=flow_sp_1)
+        await device.set_flowrate(channel=2, flowrate=flow_sp_2)
+        assert flow_sp_1 == await device.get_flowrate(1)
+        assert flow_sp_2 == await device.get_flowrate(2)
 
 
 async def test_volume_setpoint_roundtrip():
@@ -244,7 +244,7 @@ async def test_reset():
         # FIXME the Pump class has no setRotation method yet
         device.hw.command('1K')  # counterclockwise
         assert 'K' == device.hw.query('1xD')
-        await device.resetDefaultSettings()
+        await device.reset_default_settings()
         assert 'J' == device.hw.query('1xD')
 
 

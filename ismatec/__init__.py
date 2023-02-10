@@ -25,7 +25,7 @@ def command_line(args=None):
 
     async def run():
         async with Pump(address=(args.address, args.port), timeout=.2) as pump:
-            d = await pump.getFlowrate(args.channel)
+            d = await pump.get_flowrate(args.channel)
             print(json.dumps(d, indent=4))
 
     loop = asyncio.new_event_loop()

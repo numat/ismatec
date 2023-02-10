@@ -40,12 +40,12 @@ class Pump(Protocol):
         self.hw.command('1xE1')
 
         # list of channel indices for iteration and checking
-        self.nChannels = self.getNumberChannels()
+        self.nChannels = self.get_number_channels()
         self.channels = list(range(1, self.nChannels + 1))
 
         # initial running states
         self.stop()
-        self.hw.setRunningStatus(False, self.channels)
+        self.hw.set_running_status(False, self.channels)
 
     async def __aenter__(self):
         """Asynchronously connect with the context manager."""
@@ -60,7 +60,7 @@ class Pump(Protocol):
     # one per channel for the ones that have the channel kwarg.        #
     ####################################################################
 
-    def getPumpVersion(self):
+    def get_pump_version(self):
         """Return the pump model, firmware version, and pump head type code."""
         return self.hw.query('1#').strip()
 
@@ -68,19 +68,19 @@ class Pump(Protocol):
         """Return serial protocol version."""
         return self.hw.query('1x!')
 
-    async def setFlowrate(self, channel, flowrate):
+    async def set_flowrate(self, channel, flowrate):
         """Set the flowrate of the specified channel."""
         assert channel in self.channels
         flow = self._volume2(flowrate)
         self.hw.query(f'{channel}f{flow}')
 
-    async def getFlowrate(self, channel):
+    async def get_flowrate(self, channel):
         """Return the current flowrate of the specified channel."""
         assert channel in self.channels
         reply = self.hw.query(f'{channel}f')
         return float(reply) / 1000 if reply else 0
 
-    def getRunning(self, channel):
+    def get_running(self, channel):
         """Return True if the specified channel is running."""
         assert channel in self.channels
         return self.hw.running[channel - 1]
@@ -91,12 +91,12 @@ class Pump(Protocol):
         reply = self.hw.query(f'{channel}xM')
         return Protocol.Mode(reply).name
 
-    async def setMode(self, channel: int, mode: Protocol.Mode):
+    async def set_mode(self, channel: int, mode: Protocol.Mode):
         """Set the mode of the specified channel."""
         assert channel in self.channels
         return self.hw.command(f'{channel}{mode.value}')
 
-    def getNumberChannels(self):
+    def get_number_channels(self):
         """Get the number of (currently configured) pump channels.
 
         Return 0 if the pump is not configured for independent channels.
@@ -106,12 +106,12 @@ class Pump(Protocol):
         except ValueError:
             return 0
 
-    def getTubingInnerDiameter(self, channel):
+    def get_tubing_inner_diameter(self, channel):
         """Return the set peristaltic tubing inner diameter on the specified channel, in mm."""
         assert channel in self.channels
         return float(self.hw.query(f'{channel}+').split(' ')[0])
 
-    def setTubingInnerDiameter(self, diam, channel=None):
+    def set_tubing_inner_diameter(self, diam, channel=None):
         """
         Set the peristaltic tubing inner diameter on the specified channel, in mm.
 
@@ -120,7 +120,7 @@ class Pump(Protocol):
         if channel is None:
             allgood = True
             for ch in self.channels:
-                allgood = allgood and self.setTubingInnerDiameter(diam, channel=ch)
+                allgood = allgood and self.set_tubing_inner_diameter(diam, channel=ch)
             return allgood
         return self.hw.command(f'{channel}+{self._discrete2(diam)}')
 
@@ -142,11 +142,11 @@ class Pump(Protocol):
         on = 1 if on else 0
         return bool(self.hw.query(f'1xE{on}'))
 
-    async def resetDefaultSettings(self):
+    async def reset_default_settings(self):
         """Reset all user configurable data to default values."""
         return self.hw.command('10')  # '1' is a pump address, not channel
 
-    def continuousFlow(self, rate, channel=None):
+    def continuous_flow(self, rate, channel=None):
         """
         Start continuous flow at rate (ml/min) on specified channel.
 
@@ -174,7 +174,7 @@ class Pump(Protocol):
             rate = rate / abs(rate) * maxrate
         self.hw.query(f'{channel}f{self._volume2(rate)}')
         # make sure the running status gets set from the start
-        self.hw.setRunningStatus(True, channel)
+        self.hw.set_running_status(True, channel)
         # start
         self.hw.command(f'{channel}H')
 
@@ -219,7 +219,7 @@ class Pump(Protocol):
         # set volume
         self.hw.query(f'{channel}v{self._volume2(vol)}')
         # make sure the running status gets set from the start to avoid later Sardana troubles
-        self.hw.setRunningStatus(True, channel)
+        self.hw.set_running_status(True, channel)
         # start
         self.hw.command(f'{channel}H')
 
@@ -243,7 +243,7 @@ class Pump(Protocol):
         # set time.  Note: if the time is too short, the pump will not start.
         self.hw.query(f"{channel}xT{self._time2(time, units='m')}")
         # make sure the running status gets set from the start to avoid later Sardana troubles
-        self.hw.setRunningStatus(True, channel)
+        self.hw.set_running_status(True, channel)
         # start
         self.hw.command(f'{channel}H')
 
@@ -270,7 +270,7 @@ class Pump(Protocol):
         # set time.  Note: if the time is too short, the pump will not start.
         self.hw.query(f"{channel}xT{self._time2(time, units='m')}")
         # make sure the running status gets set from the start
-        self.hw.setRunningStatus(True, channel)
+        self.hw.set_running_status(True, channel)
         # start
         self.hw.command(f'{channel}H')
 
@@ -284,5 +284,5 @@ class Pump(Protocol):
         channel = 0 if channel is None else channel
         assert channel in self.channels or channel == 0
         # doing this misses the asynchronous stop signal, so set manually
-        self.hw.setRunningStatus(False, channel)
+        self.hw.set_running_status(False, channel)
         return self.hw.command(f'{channel}I')
