@@ -22,9 +22,12 @@ class Pump(RealPump):
         self.client = AsyncClientMock()
         self.channels = [1, 2, 3, 4]
         self.running = [False for channel in self.channels]
-        self.state = [
+        self.state = {
+            'channel_addressing': False,  # FIXME verify
+            'event_messaging': False,  # FIXME verify
+        }
+        self.state['channels'] = [
             {
-                'channel': c,
                 'flowrate': 1.0 * c,
                 'direction': 'clockwise',
                 'mode': Protocol.Mode.RPM
@@ -54,16 +57,20 @@ class Communicator(MagicMock, Protocol):
             raise ValueError
         command = command[1:]
         if command == 'f':  # getFlowrate (in mL/min)
-            return self._volume1(self.state[channel - 1]['flowrate'])
+            return self._volume1(self.state['channels'][channel - 1]['flowrate'])
         elif command.startswith('f'):  # set flowrate (in mL/min)
             exponent = int(command[-2:])
             matissa = float(command[1:5]) / 1000
-            self.state[channel - 1]['flowrate'] = float(matissa * 10**exponent)
+            self.state['channels'][channel - 1]['flowrate'] = float(matissa * 10**exponent)
         elif command == 'xD':  # get rotation direction
-            cw = self.state[channel - 1]['direction'] == 'clockwise'
+            cw = self.state['channels'][channel - 1]['direction'] == 'clockwise'
             return 'J' if cw else 'K'
-        elif command == 'xM':
-            return Protocol.Mode[self.state[channel - 1]['mode']].value
+        elif command == 'xM':  # get current mode
+            return Protocol.Mode[self.state['channels'][channel - 1]['mode']].value
+        elif command == 'xE':  # async event messages enabled?
+            return self.state['event_messaging']
+        elif command.startswith('xE'):
+            self.state['event_messaging'] = bool(int(command[-1]))
         else:
             raise NotImplementedError
 
@@ -71,8 +78,8 @@ class Communicator(MagicMock, Protocol):
         """Mock commands."""
         if command == '10':  # reset all settings
             for channel, _ in enumerate(self.channels):
-                self.state[channel]['direction'] = 'clockwise'
-                self.state[channel]['flowrate'] = 0.0
+                self.state['channels'][channel]['direction'] = 'clockwise'
+                self.state['channels'][channel]['flowrate'] = 0.0
                 self.running[channel] = False
             return
         channel = int(command[0])
@@ -80,15 +87,15 @@ class Communicator(MagicMock, Protocol):
             raise ValueError
         command = command[1:]
         if command == 'K':  # set to CCW rotation
-            self.state[channel - 1]['direction'] = 'counterclockwise'
+            self.state['channels'][channel - 1]['direction'] = 'counterclockwise'
         elif command == 'J':  # set to CW rotation
-            self.state[channel - 1]['direction'] = 'clockwise'
+            self.state['channels'][channel - 1]['direction'] = 'clockwise'
         elif command == 'H':  # start
             self.running[channel - 1] = True
         elif command == 'I':  # stop
             self.running[channel - 1] = False
         elif command in [m.value for m in Protocol.Mode]:
-            self.state[channel - 1]['mode'] = Protocol.Mode(command).name
+            self.state['channels'][channel - 1]['mode'] = Protocol.Mode(command).name
         else:
             raise NotImplementedError
         return '*'

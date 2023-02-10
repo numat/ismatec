@@ -29,18 +29,18 @@ async def test_channel_addressing_roundtrip():
     """Confirm that enabling/disabling channel addressing works."""
     async with Pump('fakeip') as device:
         await device.set_channel_addressing(True)
-        assert await device.is_channel_addressing()
+        assert await device.has_channel_addressing()
         await device.set_channel_addressing(False)
-        assert await device.is_channel_addressing() is False
+        assert await device.has_channel_addressing() is False
 
 
 async def test_event_messaging_roundtrip():
     """Confirm that enabling/disabling async event messages works."""
     async with Pump('fakeip') as device:
         await device.set_event_messaging(True)
-        assert await device.is_event_messaging()
+        assert await device.has_event_messaging()
         await device.set_event_messaging(False)
-        assert await device.get_event_messaging() is False
+        assert await device.has_event_messaging() is False
 
 
 @pytest.mark.skip

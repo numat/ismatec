@@ -120,6 +120,15 @@ class Pump(Protocol):
             return allgood
         return self.hw.command(f'{channel}+{self._discrete2(diam)}')
 
+    async def has_event_messaging(self):
+        """Return status of event messaging."""
+        return self.hw.query('1xE')
+
+    async def set_event_messaging(self, on):
+        """Enable or disable event messaging."""
+        on = 1 if on else 0
+        return bool(self.hw.query(f'1xE{on}'))
+
     async def resetDefaultSettings(self):
         """Reset all user configurable data to default values."""
         return self.hw.command('10')  # '1' is a pump address, not channel
