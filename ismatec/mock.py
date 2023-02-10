@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock
 
 from .driver import Pump as RealPump
+from .util import Protocol
 
 
 class AsyncClientMock(MagicMock):
@@ -42,7 +43,7 @@ class Pump(RealPump):
         pass
 
 
-class Communicator(MagicMock):
+class Communicator(MagicMock, Protocol):
     """Mock the pump communication hardware."""
 
     def query(self, command):

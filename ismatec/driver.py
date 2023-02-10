@@ -1,12 +1,12 @@
 """A single Ismatec Reglo ICC multi-channel peristaltic pump class."""
 import logging
 
-from .util import SerialCommunicator, SocketCommunicator
+from .util import Protocol, SerialCommunicator, SocketCommunicator
 
 logger = logging.getLogger('ismatec')
 
 
-class Pump(object):
+class Pump(Protocol):
     """
     Class for representing a single Ismatec Reglo ICC multi-channel peristaltic pump.
 
@@ -253,57 +253,3 @@ class Pump(object):
         # doing this misses the asynchronous stop signal, so set manually
         self.hw.setRunningStatus(False, channel)
         return self.hw.command(f'{channel}I')
-
-    ##################
-    # Helper methods #
-    ##################
-    def _time1(self, number, units='s'):
-        """Convert number to 'time type 1'.
-
-        1-8 digits, 0 to 35964000 in units of 0.1s
-        (0 to 999 hr)
-        """
-        number = 10 * number  # 0.1s
-        if units == 'm':
-            number = 60 * number
-        if units == 'h':
-            number = 60 * number
-        return str(min(number, 35964000)).replace('.', '')
-
-    def _time2(self, number, units='s'):
-        """Convert number to 'time type 2'.
-
-        8 digits, 0 to 35964000 in units of 0.1s, left-padded with zeroes
-        (0 to 999 hr)
-        """
-        number = 10 * number  # 0.1s
-        if units == 'm':
-            number = 60 * number
-        if units == 'h':
-            number = 60 * number
-        return str(min(number, 35964000)).replace('.', '').zfill(8)
-
-    def _volume2(self, number):
-        # convert number to "volume type 2"
-        number = f'{abs(number):.3e}'
-        number = number[0] + number[2:5] + number[-3] + number[-1]
-        return number
-
-    def _volume1(self, number):
-        # convert number to "volume type 1"
-        number = f'{abs(number):.3e}'
-        number = number[0] + number[2:5] + 'E' + number[-3] + number[-1]
-        return number
-
-    def _discrete2(self, number):
-        # convert float to "discrete type 2"
-        s = str(number).strip('0')
-        whole, decimals = s.split('.')
-        return b'%04d' % int(whole + decimals)
-
-    def _discrete3(self, number):
-        """Convert number to 'discrete type 3'.
-
-        6 digits, 0 to 999999, left-padded with zeroes
-        """
-        return str(number).zfill(6)
