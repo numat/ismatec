@@ -120,6 +120,15 @@ class Pump(Protocol):
             return allgood
         return self.hw.command(f'{channel}+{self._discrete2(diam)}')
 
+    async def has_channel_addressing(self):
+        """Return status of channel addressing."""
+        return self.hw.query('1~')
+
+    async def set_channel_addressing(self, on):
+        """Enable or disable channel addressing."""
+        on = 1 if on else 0
+        return bool(self.hw.query(f'1~{on}'))
+
     async def has_event_messaging(self):
         """Return status of event messaging."""
         return self.hw.query('1xE')

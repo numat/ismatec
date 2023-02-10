@@ -71,6 +71,10 @@ class Communicator(MagicMock, Protocol):
             return self.state['event_messaging']
         elif command.startswith('xE'):
             self.state['event_messaging'] = bool(int(command[-1]))
+        elif command == '~':  # channel addressing
+            return self.state['channel_addressing']
+        elif command.startswith('~'):
+            self.state['channel_addressing'] = bool(int(command[-1]))
         else:
             raise NotImplementedError
 
