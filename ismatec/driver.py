@@ -35,16 +35,13 @@ class Pump(object):
         self.hw.command('1~1')
 
         # Get number of channels
-        try:
-            nChannels = int(self.hw.query('1xA'))
-        except ValueError:
-            nChannels = 0
 
         # Enable asynchronous messages
         self.hw.command('1xE1')
 
         # list of channel indices for iteration and checking
-        self.channels = list(range(1, nChannels + 1))
+        self.nChannels = self.getNumberChannels()
+        self.channels = list(range(1, self.nChannels + 1))
 
         # initial running states
         self.stop()
@@ -67,6 +64,12 @@ class Pump(object):
         """Return the pump model, firmware version, and pump head type code."""
         return self.hw.query('1#').strip()
 
+    async def setFlowrate(self, channel, flowrate):
+        """Set the flowrate of the specified channel."""
+        assert channel in self.channels
+        flow = self._volume2(flowrate)
+        self.hw.query(f'{channel}f{flow}')
+
     async def getFlowrate(self, channel):
         """Return the current flowrate of the specified channel."""
         assert channel in self.channels
@@ -77,6 +80,16 @@ class Pump(object):
         """Return True if the specified channel is running."""
         assert channel in self.channels
         return self.hw.running[channel - 1]
+
+    def getNumberChannels(self):
+        """Get the number of (currently configured) pump channels.
+
+        Return 0 if the pump is not configured for independent channels.
+        """
+        try:
+            return int(self.hw.query('1xA'))
+        except ValueError:
+            return 0
 
     def getTubingInnerDiameter(self, channel):
         """Return the set peristaltic tubing inner diameter on the specified channel, in mm."""

@@ -51,10 +51,12 @@ class Communicator(MagicMock):
         if channel not in self.channels:
             raise ValueError
         command = command[1:]
-        if command == 'f':  # getFlowrate
+        if command == 'f':  # getFlowrate (in mL/min)
             return float(self.state[channel - 1]['flowrate'])
         elif command.startswith('f'):  # set flowrate (in mL/min)
-            self.state[channel - 1]['flowrate'] = float(command[1:])
+            exponent = int(command[-2:])
+            matissa = float(command[1:5]) / 1000
+            self.state[channel - 1]['flowrate'] = float(matissa * 10**exponent)
         elif command == 'xD':  # get rotation direction
             cw = self.state[channel - 1]['direction'] == 'clockwise'
             return 'J' if cw else 'K'

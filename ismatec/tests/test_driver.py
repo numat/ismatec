@@ -27,8 +27,7 @@ async def test_flowrate_roundtrip():
     async with Pump('fakeip') as device:
         flow_sp_1 = round(uniform(1, 10), 1)
         flow_sp_2 = round(uniform(1, 10), 1)
-        # FIXME the Pump class has no setFlowrate method yet
-        device.hw.query(f'1f{flow_sp_1}'.encode())
+        await device.setFlowrate(channel=1, flowrate=flow_sp_1)
         await device.setFlowrate(channel=2, flowrate=flow_sp_2)
         assert flow_sp_1 == await device.getFlowrate(1)
         assert flow_sp_2 == await device.getFlowrate(2)
