@@ -81,6 +81,17 @@ class Pump(Protocol):
         assert channel in self.channels
         return self.hw.running[channel - 1]
 
+    async def get_mode(self, channel: int) -> str:
+        """Return the current mode of the specified channel."""
+        assert channel in self.channels
+        reply = self.hw.query(f'{channel}xM')
+        return Protocol.Mode(reply).name
+
+    async def setMode(self, channel: int, mode: Protocol.Mode):
+        """Set the mode of the specified channel."""
+        assert channel in self.channels
+        return self.hw.command(f'{channel}{mode.value}')
+
     def getNumberChannels(self):
         """Get the number of (currently configured) pump channels.
 

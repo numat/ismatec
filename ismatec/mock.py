@@ -27,6 +27,7 @@ class Pump(RealPump):
                 'channel': c,
                 'flowrate': 1.0 * c,
                 'direction': 'clockwise',
+                'mode': Protocol.Mode.RPM
             }
             for c in self.channels]
         self.hw = Communicator()
@@ -61,6 +62,8 @@ class Communicator(MagicMock, Protocol):
         elif command == 'xD':  # get rotation direction
             cw = self.state[channel - 1]['direction'] == 'clockwise'
             return 'J' if cw else 'K'
+        elif command == 'xM':
+            return Protocol.Mode[self.state[channel - 1]['mode']].value
         else:
             raise NotImplementedError
 
@@ -84,6 +87,8 @@ class Communicator(MagicMock, Protocol):
             self.running[channel - 1] = True
         elif command == 'I':  # stop
             self.running[channel - 1] = False
+        elif command in [m.value for m in Protocol.Mode]:
+            self.state[channel - 1]['mode'] = Protocol.Mode(command).name
         else:
             raise NotImplementedError
         return '*'

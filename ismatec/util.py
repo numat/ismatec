@@ -5,6 +5,7 @@ import socket
 import threading
 import time
 from abc import abstractmethod
+from enum import Enum
 from queue import Queue
 
 import serial
@@ -269,3 +270,14 @@ class Protocol:
         6 digits, 0 to 999999, left-padded with zeroes
         """
         return str(number).zfill(6)
+
+    class Mode(Enum):
+        """Possible operating modes."""
+
+        RPM = 'L'
+        FLOWRATE = 'M'
+        VOL_AT_RATE = 'O'
+        VOL_OVER_TIME = 'G'
+        VOL_PAUSE = 'Q'
+        TIME = 'N'
+        TIME_PAUSE = 'P'

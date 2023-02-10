@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from ismatec import command_line
 from ismatec.mock import Pump
+from ismatec.util import Protocol
 
 
 @pytest.fixture
@@ -81,3 +82,12 @@ async def test_reset():
         assert 'K' == device.hw.query('1xD')
         await device.resetDefaultSettings()
         assert 'J' == device.hw.query('1xD')
+
+
+@pytest.mark.parametrize('mode', Protocol.Mode)
+async def test_modes(mode):
+    """Confirm setting and reading modes works."""
+    async with Pump('fakeip') as device:
+        channel = choice([1, 2, 3, 4])
+        await device.setMode(channel, mode)
+        assert mode.name == await device.getMode(channel)
