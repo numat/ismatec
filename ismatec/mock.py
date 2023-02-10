@@ -52,7 +52,7 @@ class Communicator(MagicMock):
             raise ValueError
         command = command[1:]
         if command == 'f':  # getFlowrate (in mL/min)
-            return float(self.state[channel - 1]['flowrate'])
+            return self._volume1(self.state[channel - 1]['flowrate'])
         elif command.startswith('f'):  # set flowrate (in mL/min)
             exponent = int(command[-2:])
             matissa = float(command[1:5]) / 1000

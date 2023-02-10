@@ -74,7 +74,7 @@ class Pump(object):
         """Return the current flowrate of the specified channel."""
         assert channel in self.channels
         reply = self.hw.query(f'{channel}f')
-        return float(reply) if reply else 0
+        return float(reply) / 1000 if reply else 0
 
     def getRunning(self, channel):
         """Return True if the specified channel is running."""
