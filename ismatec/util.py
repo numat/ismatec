@@ -281,3 +281,9 @@ class Protocol:
         VOL_PAUSE = 'Q'
         TIME = 'N'
         TIME_PAUSE = 'P'
+
+    class Setpoint(Enum):
+        """Possible setpoint types."""
+
+        RPM = 0
+        FLOWRATE = 1
