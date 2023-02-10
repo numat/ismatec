@@ -43,7 +43,6 @@ async def test_event_messaging_roundtrip():
         assert await device.has_event_messaging() is False
 
 
-@pytest.mark.skip
 async def test_serial_protocol_version():
     """Confirm getting the serial protocol version."""
     async with Pump('fakeip') as device:

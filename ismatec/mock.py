@@ -75,6 +75,8 @@ class Communicator(MagicMock, Protocol):
             return self.state['channel_addressing']
         elif command.startswith('~'):
             self.state['channel_addressing'] = bool(int(command[-1]))
+        elif command == 'x!':  # protocol version
+            return 2
         else:
             raise NotImplementedError
 
