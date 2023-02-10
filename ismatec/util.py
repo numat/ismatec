@@ -130,7 +130,7 @@ class SerialCommunicator(Communicator):
                 self.debug('flushed garbage before query: "%s"' % flush)
             # write command and get result
             cmd = self.que_q.get()
-            self.ser.command(cmd + b'\r')
+            self.ser.command(cmd.encode() + b'\r')
             res = self.ser.readline().strip()
             self.res_q.put(res)
             # enable asynchronous communication again
@@ -194,7 +194,7 @@ class SocketCommunicator(Communicator):
                 self.debug('flushed garbage before query: "%s"' % flush)
             # write command and get result
             cmd = self.req_q.get()
-            self.socket.send(cmd + b'\r')
+            self.socket.send(cmd.encode() + b'\r')
             res = self.readline().strip()
             self.res_q.put(res)
             # enable asynchronous communication again
