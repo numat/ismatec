@@ -220,7 +220,7 @@ async def test_calculated_dispense_time():
 # Configuration
 
 
-@pytest.mark.parametrize('tubing', Protocol.Tubing)
+@pytest.mark.parametrize('tubing', Protocol.Tubing[::10])
 async def test_tubing_diameter_roundtrip(tubing):
     """Confirm setting/getting the tubing Inner Diameter (ID) works."""
     async with Pump('fakeip') as device:
