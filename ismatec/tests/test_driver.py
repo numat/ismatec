@@ -1,5 +1,5 @@
 """Test the pump driver responds with correct data."""
-from random import uniform
+from random import choice, uniform
 from unittest import mock
 
 import pytest
@@ -29,6 +29,35 @@ async def test_flowrate_roundtrip():
         flow_sp_2 = round(uniform(1, 10), 1)
         # FIXME the Pump class has no setFlowrate method yet
         device.hw.query(f'1f{flow_sp_1}'.encode())
-        device.hw.query(f'2f{flow_sp_2}'.encode())
+        await device.setFlowrate(channel=2, flowrate=flow_sp_2)
         assert flow_sp_1 == await device.getFlowrate(1)
         assert flow_sp_2 == await device.getFlowrate(2)
+
+
+async def test_rotation_roundtrip():
+    """Confirm setting/getting flow direction works."""
+    async with Pump('fakeip') as device:
+        rotation_1 = choice(['K', 'J'])
+        rotation_2 = choice(['counterclockwise', 'clockwise'])
+        # FIXME the Pump class has no setRotation method yet
+        device.hw.command(f'1{rotation_1}')
+        await device.setRotation(channel=2, rotation=rotation_2)
+        assert rotation_1 == device.hw.query('1xD')
+        assert rotation_2 == await device.getRotation(channel=2)
+
+
+async def test_start_stop_roundtrip():
+    """Confirm starting and stopping works."""
+    async with Pump('fakeip') as device:
+        # FIXME the Pump class has no start method yet
+        device.hw.command('1H')
+        assert device.getRunning(1) is True
+        assert await device.getRunning(2) is False
+        await device.start(2)
+        assert await device.getRunning(2) is True
+
+        device.stop(1)
+        assert device.getRunning(1) is False
+        assert await device.getRunning(2) is True
+        await device.stop(2)
+        assert await device.getRunning(2) is False
