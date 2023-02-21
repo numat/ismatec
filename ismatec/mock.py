@@ -29,7 +29,7 @@ class Pump(RealPump):
         self.state['channels'] = [
             {
                 'flowrate': 1.0 * c,
-                'direction': 'clockwise',
+                'rotation': Protocol.Rotation.CLOCKWISE,
                 'mode': Protocol.Mode.RPM,
                 'diameter': Protocol.Tubing[0]
             }
@@ -64,8 +64,7 @@ class Communicator(MagicMock, Protocol):
             matissa = float(command[1:5]) / 1000
             self.state['channels'][channel - 1]['flowrate'] = float(matissa * 10**exponent)
         elif command == 'xD':  # get rotation direction
-            cw = self.state['channels'][channel - 1]['direction'] == 'clockwise'
-            return 'J' if cw else 'K'
+            return Protocol.Rotation[self.state['channels'][channel - 1]['rotation']].value
         elif command == 'xM':  # get current mode
             return Protocol.Mode[self.state['channels'][channel - 1]['mode']].value
         elif command == 'xE':  # async event messages enabled?
@@ -87,7 +86,7 @@ class Communicator(MagicMock, Protocol):
         """Mock commands."""
         if command == '10':  # reset all settings
             for channel, _ in enumerate(self.channels):
-                self.state['channels'][channel]['direction'] = 'clockwise'
+                self.state['channels'][channel]['rotation'] = Protocol.Rotation.CLOCKWISE.name
                 self.state['channels'][channel]['flowrate'] = 0.0
                 self.running[channel] = False
             return
@@ -95,10 +94,8 @@ class Communicator(MagicMock, Protocol):
         if channel not in self.channels:
             raise ValueError
         command = command[1:]
-        if command == 'K':  # set to CCW rotation
-            self.state['channels'][channel - 1]['direction'] = 'counterclockwise'
-        elif command == 'J':  # set to CW rotation
-            self.state['channels'][channel - 1]['direction'] = 'clockwise'
+        if command in ['J', 'K']:  # set to CCW (K) or CW (J) rotation
+            self.state['channels'][channel - 1]['rotation'] = Protocol.Rotation(command).name
         elif command == 'H':  # start
             self.running[channel - 1] = True
         elif command == 'I':  # stop

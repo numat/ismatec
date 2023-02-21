@@ -88,12 +88,11 @@ async def test_pause_pumping():
 async def test_rotation_roundtrip():
     """Confirm setting/getting flow direction works."""
     async with Pump('fakeip') as device:
-        rotation_1 = choice(['K', 'J'])
-        rotation_2 = choice(['counterclockwise', 'clockwise'])
-        # FIXME the Pump class has no setRotation method yet
-        device.hw.command(f'1{rotation_1}')
+        rotation_1 = choice(list(Protocol.Rotation))
+        rotation_2 = choice(list(Protocol.Rotation))
+        await device.set_rotation(channel=1, rotation=rotation_1)
         await device.set_rotation(channel=2, rotation=rotation_2)
-        assert rotation_1 == device.hw.query('1xD')
+        assert rotation_1 == await device.get_rotation(channel=1)
         assert rotation_2 == await device.get_rotation(channel=2)
 
 
@@ -241,11 +240,10 @@ async def test_backsteps_roundtrip():
 async def test_reset():
     """Confirm resetting user-configurable data works."""
     async with Pump('fakeip') as device:
-        # FIXME the Pump class has no setRotation method yet
-        device.hw.command('1K')  # counterclockwise
-        assert 'K' == device.hw.query('1xD')
+        await device.set_rotation(channel=1, rotation=Protocol.Rotation.COUNTERCLOCKWISE)
+        assert Protocol.Rotation.COUNTERCLOCKWISE == await device.get_rotation(1)
         await device.reset_default_settings()
-        assert 'J' == device.hw.query('1xD')
+        assert Protocol.Rotation.CLOCKWISE == await device.get_rotation(1)
 
 
 #  Calibration (not implemented)

@@ -124,6 +124,25 @@ class Pump(Protocol):
             return allgood
         return self.hw.command(f'{channel}+{self._discrete2(diam)}')
 
+    async def get_rotation(self, channel):
+        """Return the rotation direction on the specified channel."""
+        assert channel in self.channels
+        rotation_code = self.hw.query(f'{channel}xD')
+        return Protocol.Rotation(rotation_code)
+
+    async def set_rotation(self, rotation: Protocol.Rotation, channel=None):
+        """
+        Set the rotation direction on the specified channel.
+
+        If no channel is specified, set it on all channels.
+        """
+        if channel is None:
+            allgood = True
+            for ch in self.channels:
+                allgood = allgood and await self.set_rotation(rotation, channel=ch)
+            return allgood
+        return self.hw.command(f'{channel}{rotation.value}')
+
     async def has_channel_addressing(self):
         """Return status of channel addressing."""
         return self.hw.query('1~')
