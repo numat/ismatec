@@ -224,8 +224,8 @@ async def test_tubing_diameter_roundtrip(tubing):
     """Confirm setting/getting the tubing Inner Diameter (ID) works."""
     async with Pump('fakeip') as device:
         channel = choice([1, 2, 3, 4])
-        await device.set_tubing_diameter(channel, tubing)
-        assert tubing == device.get_tubing_diameter(channel)
+        await device.set_tubing_inner_diameter(tubing, channel)
+        assert tubing == await device.get_tubing_inner_diameter(channel)
 
 
 @pytest.mark.skip
