@@ -123,11 +123,11 @@ class Pump(Protocol):
             return allgood
         return self.hw.command(f'{channel}+{self._discrete2(diam)}')
 
-    async def get_speed(self, channel):
+    async def get_speed(self, channel) -> float:
         """Get the speed, in RPM, of a channel."""
-        return self.hw.query(f'{channel}S')
+        return float(self.hw.query(f'{channel}S'))
 
-    async def set_speed(self, rpm: int, channel=None):
+    async def set_speed(self, rpm: float, channel=None) -> bool:
         """Set the speed (RPM) of a channel.
 
         If no channel is specified, set it on all channels.
@@ -136,8 +136,9 @@ class Pump(Protocol):
         if channel is None:
             allgood = True
             for ch in self.channels:
-                allgood = allgood and self.set_speed(rpm, channel=ch)
+                allgood = allgood and bool(self.set_speed(rpm, channel=ch))
             return allgood
+        rpm = int(round(rpm, 2) * 100)
         return self.hw.command(f'{channel}S{self._discrete3(rpm)}')
 
     async def get_rotation(self, channel):

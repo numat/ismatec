@@ -81,7 +81,7 @@ class Communicator(MagicMock, Protocol):
         elif command == '+':
             return self.state['channels'][channel - 1]['diameter']
         elif command == ('S'):  # get speed (RPM)
-            return self.state['channels'][channel - 1]['rpm']
+            return str(self.state['channels'][channel - 1]['rpm'])
         else:
             raise NotImplementedError
 
@@ -108,7 +108,7 @@ class Communicator(MagicMock, Protocol):
         elif command.startswith('+'):  # set tubing ID
             self.state['channels'][channel - 1]['diameter'] = float(command[1:]) / 100
         elif command.startswith('S'):  # set speed (RPM)
-            self.state['channels'][channel - 1]['rpm'] = int(command[1:])
+            self.state['channels'][channel - 1]['rpm'] = float(command[1:]) / 100
         else:
             raise NotImplementedError
         return '*'

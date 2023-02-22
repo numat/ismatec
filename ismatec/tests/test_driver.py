@@ -124,8 +124,8 @@ async def test_setpoint_type_roundtrip():
 async def test_speed_roundtrip():
     """Confirm that setting/getting speed (RPM) works."""
     async with Pump('fakeip') as device:
-        sp_1 = randint(1, 100)
-        sp_2 = randint(1, 100)
+        sp_1 = round(uniform(1, 100), 2)
+        sp_2 = round(uniform(1, 100), 2)
         await device.set_speed(channel=1, rpm=sp_1)
         await device.set_speed(channel=2, rpm=sp_2)
         assert sp_1 == await device.get_speed(1)
