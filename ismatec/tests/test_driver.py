@@ -135,8 +135,8 @@ async def test_speed_roundtrip():
 async def test_flowrate_roundtrip():
     """Confirm that setting/getting flowrates works."""
     async with Pump('fakeip') as device:
-        flow_sp_1 = round(uniform(1, 10), 1)
-        flow_sp_2 = round(uniform(1, 10), 1)
+        flow_sp_1 = round(uniform(0.01, 0.14), 3)
+        flow_sp_2 = round(uniform(0.01, 0.14), 3)
         await device.set_flowrate(channel=1, flowrate=flow_sp_1)
         await device.set_flowrate(channel=2, flowrate=flow_sp_2)
         assert flow_sp_1 == await device.get_flowrate(1)
