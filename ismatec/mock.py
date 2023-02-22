@@ -77,7 +77,7 @@ class Communicator(MagicMock, Protocol):
         elif command.startswith('~'):
             self.state['channel_addressing'] = bool(int(command[-1]))
         elif command == 'x!':  # protocol version
-            return 2
+            return '2'
         elif command == '+':
             return self.state['channels'][channel - 1]['diameter']
         elif command == ('S'):  # get speed (RPM)

@@ -66,7 +66,7 @@ class Pump(Protocol):
 
     async def get_serial_protocol_version(self):
         """Return serial protocol version."""
-        return self.hw.query('1x!')
+        return int(self.hw.query('1x!'))
 
     async def set_flowrate(self, channel, flowrate):
         """Set the flowrate of the specified channel."""
