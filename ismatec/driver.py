@@ -28,16 +28,13 @@ class Pump(Protocol):
             raise RuntimeError('Specify serial device or (host, port) tuple!')
         self.hw.start()
 
-        # Assign address 1 to pump
-        self.hw.command('@1')
-
         # Enable independent channel addressing
         self.hw.command('1~1')
 
         # Get number of channels
 
-        # Enable asynchronous messages
-        self.hw.command('1xE1')
+        # Disable asynchronous messages
+        self.hw.command('1xE0')
 
         # list of channel indices for iteration and checking
         self.nChannels = self.get_number_channels()
