@@ -70,9 +70,9 @@ class Pump(Protocol):
         """Set the flowrate of the specified channel."""
         assert channel in self.channels
         flow = self._volume2(flowrate)
-        self.hw.query(f'{channel}f{flow}')
+        self.hw.command(f'{channel}f{flow}')
 
-    async def get_flowrate(self, channel):
+    async def get_flowrate(self, channel) -> float:
         """Return the current flowrate of the specified channel."""
         assert channel in self.channels
         reply = self.hw.query(f'{channel}f')

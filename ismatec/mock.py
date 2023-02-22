@@ -60,10 +60,6 @@ class Communicator(MagicMock, Protocol):
         command = command[1:]
         if command == 'f':  # getFlowrate (in mL/min)
             return self._volume1(self.state['channels'][channel - 1]['flowrate'])
-        elif command.startswith('f'):  # set flowrate (in mL/min)
-            exponent = int(command[-2:])
-            matissa = float(command[1:5]) / 1000
-            self.state['channels'][channel - 1]['flowrate'] = float(matissa * 10**exponent)
         elif command == 'xD':  # get rotation direction
             return Protocol.Rotation[self.state['channels'][channel - 1]['rotation']].value
         elif command == 'xM':  # get current mode
@@ -109,6 +105,10 @@ class Communicator(MagicMock, Protocol):
             self.state['channels'][channel - 1]['diameter'] = float(command[1:]) / 100
         elif command.startswith('S'):  # set speed (RPM)
             self.state['channels'][channel - 1]['rpm'] = float(command[1:]) / 100
+        elif command.startswith('f'):  # set flowrate (in mL/min)
+            exponent = int(command[-2:])
+            matissa = float(command[1:5]) / 1000
+            self.state['channels'][channel - 1]['flowrate'] = float(matissa * 10**exponent)
         else:
             raise NotImplementedError
         return '*'
