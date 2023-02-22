@@ -73,7 +73,7 @@ class Communicator(MagicMock, Protocol):
         elif command.startswith('xE'):
             self.state['event_messaging'] = bool(int(command[-1]))
         elif command == '~':  # channel addressing
-            return self.state['channel_addressing']
+            return '1' if self.state['channel_addressing'] else '0'
         elif command.startswith('~'):
             self.state['channel_addressing'] = bool(int(command[-1]))
         elif command == 'x!':  # protocol version

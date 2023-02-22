@@ -15,7 +15,7 @@ class Pump(Protocol):
     The, which can be controlled independently, are available as self.channels.
     """
 
-    def __init__(self, debug=False, address=None, **kwargs):
+    def __init__(self, address=None, debug=False, **kwargs):
         """Initialize the Communicator and setup the pump to accept commands."""
         # make a hardware Communicator object
         if type(address) == str:
@@ -160,9 +160,9 @@ class Pump(Protocol):
             return allgood
         return self.hw.command(f'{channel}{rotation.value}')
 
-    async def has_channel_addressing(self):
+    async def has_channel_addressing(self) -> bool:
         """Return status of channel addressing."""
-        return self.hw.query('1~')
+        return self.hw.query('1~') == '1'
 
     async def set_channel_addressing(self, on):
         """Enable or disable channel addressing."""
