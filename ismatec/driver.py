@@ -58,7 +58,7 @@ class Pump(Protocol):
     # one per channel for the ones that have the channel kwarg.        #
     ####################################################################
 
-    def get_pump_version(self):
+    async def get_pump_version(self) -> str:
         """Return the pump model, firmware version, and pump head type code."""
         return self.hw.query('1#').strip()
 

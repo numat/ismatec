@@ -74,8 +74,10 @@ class Communicator(MagicMock, Protocol):
             return '2'
         elif command == '+':
             return self.state['channels'][channel - 1]['diameter']
-        elif command == ('S'):  # get speed (RPM)
+        elif command == 'S':  # get speed (RPM)
             return str(self.state['channels'][channel - 1]['rpm'])
+        elif command == '#':  # pump version
+            return 'REGLO ICC 0208 306'
         else:
             raise NotImplementedError
 

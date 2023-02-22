@@ -247,3 +247,8 @@ async def test_reset():
 
 #  Calibration (not implemented)
 #  System (not implemented)
+
+async def test_pump_version():
+    """Confirm getting the pump model."""
+    async with Pump(('192.168.10.12', 23)) as device:
+        assert await device.get_pump_version() == 'REGLO ICC 0208 306'
