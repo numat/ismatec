@@ -171,12 +171,12 @@ class Pump(Protocol):
 
     async def has_event_messaging(self):
         """Return status of event messaging."""
-        return self.hw.query('1xE')
+        return self.hw.query('1xE') == '1'
 
     async def set_event_messaging(self, on):
         """Enable or disable event messaging."""
         on = 1 if on else 0
-        return bool(self.hw.query(f'1xE{on}'))
+        return bool(self.hw.command(f'1xE{on}'))
 
     async def reset_default_settings(self):
         """Reset all user configurable data to default values."""

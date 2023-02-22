@@ -70,8 +70,6 @@ class Communicator(MagicMock, Protocol):
             return Protocol.Mode[self.state['channels'][channel - 1]['mode']].value
         elif command == 'xE':  # async event messages enabled?
             return self.state['event_messaging']
-        elif command.startswith('xE'):
-            self.state['event_messaging'] = bool(int(command[-1]))
         elif command == '~':  # channel addressing
             return '1' if self.state['channel_addressing'] else '0'
         elif command.startswith('~'):
@@ -93,6 +91,8 @@ class Communicator(MagicMock, Protocol):
                 self.state['channels'][channel]['flowrate'] = 0.0
                 self.running[channel] = False
             return
+        elif command == 'xE':
+            self.state['event_messaging'] = bool(int(command[-1]))
         channel = int(command[0])
         if channel not in self.channels:
             raise ValueError
