@@ -31,7 +31,8 @@ class Pump(RealPump):
                 'flowrate': 1.0 * c,
                 'rotation': Protocol.Rotation.CLOCKWISE,
                 'mode': Protocol.Mode.RPM,
-                'diameter': Protocol.Tubing[0]
+                'diameter': Protocol.Tubing[0],
+                'rpm': 0
             }
             for c in self.channels]
         self.hw = Communicator()
@@ -79,6 +80,8 @@ class Communicator(MagicMock, Protocol):
             return 2
         elif command == '+':
             return self.state['channels'][channel - 1]['diameter']
+        elif command == ('S'):  # get speed (RPM)
+            return self.state['channels'][channel - 1]['rpm']
         else:
             raise NotImplementedError
 
@@ -104,6 +107,8 @@ class Communicator(MagicMock, Protocol):
             self.state['channels'][channel - 1]['mode'] = Protocol.Mode(command).name
         elif command.startswith('+'):  # set tubing ID
             self.state['channels'][channel - 1]['diameter'] = float(command[1:]) / 100
+        elif command.startswith('S'):  # set speed (RPM)
+            self.state['channels'][channel - 1]['rpm'] = int(command[1:])
         else:
             raise NotImplementedError
         return '*'
