@@ -10,7 +10,7 @@ from ismatec.util import Protocol
 
 @pytest.fixture
 def driver():
-    """Confirm the hotplate correctly initializes."""
+    """Confirm the pump correctly initializes."""
     return Pump('fakeip')
 
 
@@ -97,8 +97,17 @@ async def test_rotation_roundtrip():
 
 async def test_cannot_run_responses():
     """Test reading the reason for a pump not running."""
-    raise NotImplementedError
-
+    async with Pump('fakeip') as device:
+        # await device.set_pump_cycle_count(channel=1, count=0)
+        await device.start(1)
+        assert await device.get_run_failure_reason(1) == ('C', 0.0)  # 0 cycles
+        await device.set_flowrate(channel=2, flowrate=0)
+        await device.start(2)
+        assert await device.get_run_failure_reason(2) == ('R', 0.1386)  # 0 flowrate
+        await device.set_flowrate(channel=3, flowrate=0.1)
+        await device.set_volume_setpoint(channel=3, vol=9999999)
+        await device.start(3)
+        assert await device.get_run_failure_reason(3) == ('V', 1256000.0)  # max volume
 # Operational mode and settings
 
 

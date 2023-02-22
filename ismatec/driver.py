@@ -178,6 +178,13 @@ class Pump(Protocol):
             return allgood
         return self.hw.command(f'{channel}{rotation.value}')
 
+    async def get_run_failure_reason(self, channel) -> tuple:
+        """Return reason for failure to run."""
+        result = self.hw.query(f'{channel}xe')
+        exponent = float(result[-2:].strip('+'))
+        mantissa = float(result[2:6]) / 1000
+        return (result[0], mantissa * 10 ** exponent)
+
     async def has_channel_addressing(self) -> bool:
         """Return status of channel addressing."""
         return self.hw.query('1~') == '1'
