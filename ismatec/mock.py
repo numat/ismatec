@@ -73,7 +73,7 @@ class Communicator(MagicMock, Protocol):
         elif command == 'x!':  # protocol version
             return '2'
         elif command == '+':
-            return self.state['channels'][channel - 1]['diameter']
+            return str(self.state['channels'][channel - 1]['diameter'] + ' mm')
         elif command == 'S':  # get speed (RPM)
             return str(self.state['channels'][channel - 1]['rpm'])
         elif command == '#':  # pump version

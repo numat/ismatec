@@ -105,10 +105,11 @@ class Pump(Protocol):
         except ValueError:
             return 0
 
-    async def get_tubing_inner_diameter(self, channel):
+    async def get_tubing_inner_diameter(self, channel) -> float:
         """Return the set peristaltic tubing inner diameter on the specified channel, in mm."""
         assert channel in self.channels
-        return float(self.hw.query(f'{channel}+'))
+        response = self.hw.query(f'{channel}+')
+        return float(response[:-3])
 
     async def set_tubing_inner_diameter(self, diam, channel=None):
         """
