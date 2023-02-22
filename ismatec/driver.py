@@ -44,7 +44,8 @@ class Pump(Protocol):
         self.channels = list(range(1, self.nChannels + 1))
 
         # initial running states
-        self.stop()
+        for ch in self.channels:
+            self.hw.command(f'{ch}I')
         self.hw.set_running_status(False, self.channels)
 
     async def __aenter__(self):
@@ -80,10 +81,11 @@ class Pump(Protocol):
         reply = self.hw.query(f'{channel}f')
         return float(reply) / 1000 if reply else 0
 
-    def get_running(self, channel):
+    async def get_running(self, channel) -> bool:
         """Return True if the specified channel is running."""
         assert channel in self.channels
-        return self.hw.running[channel - 1]
+        # self.hw.running[channel] = self.hw.query(f'{channel}E') == '+'
+        return self.hw.running[channel]
 
     async def get_mode(self, channel: int) -> str:
         """Return the current mode of the specified channel."""
@@ -310,7 +312,21 @@ class Pump(Protocol):
         # start
         self.hw.command(f'{channel}H')
 
-    def stop(self, channel=None):
+    async def start(self, channel=None):
+        """
+        Start any pumping operation on specified channel.
+
+        If no channel is specified, start on all channels.
+        """
+        # here we can start all channels by specifying 0
+        channel = 0 if channel is None else channel
+        assert channel in self.channels or channel == 0
+        # doing this misses the asynchronous stop signal, so set manually
+        result = self.hw.command(f'{channel}H')
+        self.hw.set_running_status(result, channel)
+        return result
+
+    async def stop(self, channel=None):
         """
         Stop any pumping operation on specified channel.
 
@@ -320,5 +336,6 @@ class Pump(Protocol):
         channel = 0 if channel is None else channel
         assert channel in self.channels or channel == 0
         # doing this misses the asynchronous stop signal, so set manually
-        self.hw.set_running_status(False, channel)
-        return self.hw.command(f'{channel}I')
+        result = self.hw.command(f'{channel}I')
+        self.hw.set_running_status(not result, channel)
+        return result

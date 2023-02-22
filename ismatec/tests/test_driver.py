@@ -55,15 +55,14 @@ async def test_serial_protocol_version():
 async def test_start_stop_roundtrip():
     """Confirm starting and stopping works."""
     async with Pump('fakeip') as device:
-        # FIXME the Pump class has no start method yet
-        device.hw.command('1H')
-        assert device.get_running(1) is True
+        await device.start(1)
+        assert await device.get_running(1) is True
         assert await device.get_running(2) is False
         await device.start(2)
         assert await device.get_running(2) is True
 
-        device.stop(1)
-        assert device.get_running(1) is False
+        await device.stop(1)
+        assert await device.get_running(1) is False
         assert await device.get_running(2) is True
         await device.stop(2)
         assert await device.get_running(2) is False

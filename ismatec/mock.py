@@ -21,7 +21,7 @@ class Pump(RealPump):
         """Set up connection parameters with default port."""
         self.client = AsyncClientMock()
         self.channels = [1, 2, 3, 4]
-        self.running = [False for channel in self.channels]
+        self.running = {channel: False for channel in self.channels}
         self.state = {
             'channel_addressing': False,  # FIXME verify
             'event_messaging': False,  # FIXME verify
@@ -100,9 +100,9 @@ class Communicator(MagicMock, Protocol):
         if command in ['J', 'K']:  # set to CCW (K) or CW (J) rotation
             self.state['channels'][channel - 1]['rotation'] = Protocol.Rotation(command).name
         elif command == 'H':  # start
-            self.running[channel - 1] = True
+            self.running[channel] = True
         elif command == 'I':  # stop
-            self.running[channel - 1] = False
+            self.running[channel] = False
         elif command in [m.value for m in Protocol.Mode]:
             self.state['channels'][channel - 1]['mode'] = Protocol.Mode(command).name
         elif command.startswith('+'):  # set tubing ID

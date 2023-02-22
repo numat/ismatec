@@ -69,6 +69,8 @@ class Communicator(threading.Thread):
         """Place a command in the request queue and return the response."""
         logger.debug(f"writing command '{cmd}' to {self.address}")
         self.req_q.put(cmd)
+        if len(cmd) > 1 and cmd[-1] in ['H']:
+            time.sleep(0.5)
         result = self.res_q.get()
         if result == '*':
             return True
