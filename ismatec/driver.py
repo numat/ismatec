@@ -142,6 +142,23 @@ class Pump(Protocol):
         rpm = int(round(rpm, 2) * 100)
         return self.hw.command(f'{channel}S{self._discrete3(rpm)}')
 
+    async def get_volume_setpoint(self, channel) -> float:
+        """Get the volume setpoint, in mL, of a channel."""
+        return float(self.hw.query(f'{channel}v')) / 1000
+
+    async def set_volume_setpoint(self, vol: float, channel=None) -> bool:
+        """Set the volume (mL) of a channel.
+
+        If no channel is specified, set it on all channels.
+        """
+        assert channel in self.channels
+        if channel is None:
+            allgood = True
+            for ch in self.channels:
+                allgood = allgood and bool(self.set_volume_setpoint(vol, channel=ch))
+            return allgood
+        return self.hw.command(f'{channel}v{self._volume2(vol)}')
+
     async def get_rotation(self, channel):
         """Return the rotation direction on the specified channel."""
         assert channel in self.channels

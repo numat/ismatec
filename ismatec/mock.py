@@ -32,7 +32,8 @@ class Pump(RealPump):
                 'rotation': Protocol.Rotation.CLOCKWISE,
                 'mode': Protocol.Mode.RPM,
                 'diameter': Protocol.Tubing[0],
-                'rpm': 0
+                'rpm': 0.0,
+                'volume': 0.0,
             }
             for c in self.channels]
         self.hw = Communicator()
@@ -76,6 +77,8 @@ class Communicator(MagicMock, Protocol):
             return str(self.state['channels'][channel - 1]['diameter'] + ' mm')
         elif command == 'S':  # get speed (RPM)
             return str(self.state['channels'][channel - 1]['rpm'])
+        elif command == 'v':  # get volume (mL)
+            return str(self.state['channels'][channel - 1]['volume'] * 100) + 'E+1'
         elif command == '#':  # pump version
             return 'REGLO ICC 0208 306'
         else:
@@ -111,6 +114,10 @@ class Communicator(MagicMock, Protocol):
             exponent = int(command[-2:])
             matissa = float(command[1:5]) / 1000
             self.state['channels'][channel - 1]['flowrate'] = float(matissa * 10**exponent)
+        elif command.startswith('v'):  # set volume (in mL)
+            exponent = int(command[-2:])
+            matissa = float(command[1:5]) / 1000
+            self.state['channels'][channel - 1]['volume'] = float(matissa * 10**exponent)
         else:
             raise NotImplementedError
         return '*'
