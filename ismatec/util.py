@@ -61,7 +61,7 @@ class Communicator(threading.Thread):
 
     def run(self):
         """Run continuously until threading.Event fires."""
-        while not self._stop_event.isSet():
+        while not self._stop_event.is_set():
             self.loop()
         self.close()
 
