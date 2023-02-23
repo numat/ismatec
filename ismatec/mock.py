@@ -34,6 +34,7 @@ class Pump(RealPump):
                 'diameter': Protocol.Tubing[0],
                 'rpm': 0.0,
                 'volume': 0.0,
+                'cycles': 0,
             }
             for c in self.channels]
         self.hw = Communicator()
@@ -81,8 +82,23 @@ class Communicator(MagicMock, Protocol):
             return str(round(self.state['channels'][channel - 1]['volume'] * 100, 2)) + 'E+1'
         elif command == '#':  # pump version
             return 'REGLO ICC 0208 306'
+        elif command == 'xe':
+            return self._get_cannot_run_response(channel)
         else:
             raise NotImplementedError
+
+    def _get_cannot_run_response(self, channel):
+        """Return the responses for when the pump failed to run."""
+        if (self.state['channels'][channel - 1]['mode'] == Protocol.Mode.VOL_PAUSE.name
+           and self.state['channels'][channel - 1]['cycles'] == 0):
+            return 'C 0000E+1'  # cycles = 0
+        elif (self.state['channels'][channel - 1]['mode'] == Protocol.Mode.FLOWRATE.name
+              and self.state['channels'][channel - 1]['flowrate'] == 0):
+            return 'R 1386E-1'  # flowrate = 0
+        elif (self.state['channels'][channel - 1]['mode'].startswith('VOL_')
+              and self.state['channels'][channel - 1]['volume'] >= 1256):
+            return 'V 1256E+6'  # flowrate > max
+        return ValueError
 
     def command(self, command):
         """Mock commands."""
@@ -101,7 +117,10 @@ class Communicator(MagicMock, Protocol):
         if command in ['J', 'K']:  # set to CCW (K) or CW (J) rotation
             self.state['channels'][channel - 1]['rotation'] = Protocol.Rotation(command).name
         elif command == 'H':  # start
-            self.running[channel] = True
+            if self._check_pump_will_run(channel):
+                self.running[channel] = True
+            else:
+                return '-'
         elif command == 'I':  # stop
             self.running[channel] = False
         elif command in [m.value for m in Protocol.Mode]:
@@ -121,3 +140,12 @@ class Communicator(MagicMock, Protocol):
         else:
             raise NotImplementedError
         return '*'
+
+    def _check_pump_will_run(self, channel):
+        """Return whether or not the pump will run with the current settings."""
+        return not ((self.state['channels'][channel - 1]['mode'] == Protocol.Mode.VOL_PAUSE.name
+                    and self.state['channels'][channel - 1]['cycles'] == 0)
+                    or (self.state['channels'][channel - 1]['mode'] == Protocol.Mode.FLOWRATE.name
+                    and self.state['channels'][channel - 1]['flowrate'] == 0)
+                    or (self.state['channels'][channel - 1]['mode'].startswith('VOL_')
+                    and self.state['channels'][channel - 1]['volume'] >= 1256))

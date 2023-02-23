@@ -55,6 +55,12 @@ async def test_serial_protocol_version():
 async def test_start_stop_roundtrip():
     """Confirm starting and stopping works."""
     async with Pump('fakeip') as device:
+        await device.set_mode(1, Protocol.Mode.VOL_AT_RATE)
+        await device.set_volume_setpoint(1, 10)
+        await device.set_flowrate(1, flowrate=0.1)
+        await device.set_mode(2, Protocol.Mode.FLOWRATE)
+        await device.set_flowrate(2, flowrate=0.1)
+
         await device.start(1)
         assert await device.get_running(1) is True
         assert await device.get_running(2) is False
@@ -99,15 +105,21 @@ async def test_cannot_run_responses():
     """Test reading the reason for a pump not running."""
     async with Pump('fakeip') as device:
         # await device.set_pump_cycle_count(channel=1, count=0)
-        await device.start(1)
+        await device.set_mode(1, Protocol.Mode.VOL_PAUSE)
+        assert await device.start(1) is False
         assert await device.get_run_failure_reason(1) == ('C', 0.0)  # 0 cycles
+
+        await device.set_mode(2, Protocol.Mode.FLOWRATE)
         await device.set_flowrate(2, flowrate=0)
-        await device.start(2)
+        assert await device.start(2) is False
         assert await device.get_run_failure_reason(2) == ('R', 0.1386)  # 0 flowrate
-        await device.set_flowrate(3, flowrate=0.1)
+
+        await device.set_mode(3, Protocol.Mode.VOL_AT_RATE)
+        await device.set_setpoint_type(3, Protocol.Setpoint.FLOWRATE)
+        await device.set_flowrate(3, flowrate=0.01)
         await device.set_volume_setpoint(channel=3, vol=9999999)
-        await device.start(3)
-        assert await device.get_run_failure_reason(3) == ('V', 1256000.0)  # max volume
+        assert await device.start(3) is False
+        assert await device.get_run_failure_reason(3) == ('V', 8308.0)  # max volume
 # Operational mode and settings
 
 
