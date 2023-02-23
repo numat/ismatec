@@ -223,7 +223,7 @@ class Pump(Protocol):
         If no channel is specified, dispense on all channels.
         """
         if units == 'rpm':
-            maxrate = 100
+            maxrate = 100.0
         elif channel is None:
             # this enables fairly synchronous start
             channel = 0
