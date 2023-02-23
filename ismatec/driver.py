@@ -16,6 +16,8 @@ class Pump(Protocol):
     """
 
     def __init__(self, address=None, debug=False, **kwargs):
+        if debug:
+            logger.setLevel(logging.DEBUG)
         """Initialize the Communicator and setup the pump to accept commands."""
         # make a hardware Communicator object
         if type(address) == str:
