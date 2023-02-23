@@ -35,6 +35,7 @@ class Pump(RealPump):
                 'rpm': 0.0,
                 'volume': 0.0,
                 'cycles': 0,
+                'runtime': 0.0,
             }
             for c in self.channels]
         self.hw = Communicator()
@@ -80,6 +81,8 @@ class Communicator(MagicMock, Protocol):
             return str(self.state['channels'][channel - 1]['rpm'])
         elif command == 'v':  # get volume (mL)
             return str(round(self.state['channels'][channel - 1]['volume'] * 100, 2)) + 'E+1'
+        elif command.startswith('xT'):  # get runtime (in min)
+            return self._time1(self.state['channels'][channel - 1]['runtime'], units='m')
         elif command == '#':  # pump version
             return 'REGLO ICC 0208 306'
         elif command == 'xe':
@@ -137,6 +140,9 @@ class Communicator(MagicMock, Protocol):
             exponent = int(command[-2:])
             matissa = float(command[1:5]) / 1000
             self.state['channels'][channel - 1]['volume'] = float(matissa * 10**exponent)
+        elif command.startswith('xT'):  # set runtime (in min)
+            seconds = float(command[3:]) / 10
+            self.state['channels'][channel - 1]['runtime'] = seconds / 60
         else:
             raise NotImplementedError
         return '*'

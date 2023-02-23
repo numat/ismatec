@@ -178,12 +178,12 @@ async def test_volume_setpoint_roundtrip():
 async def test_runtime_setpoint_roundtrip():
     """Confirm setting/getting the runtime setpoint works."""
     async with Pump('fakeip') as device:
-        sp_1 = round(uniform(1, 100), 2)
-        sp_2 = round(uniform(1, 100), 2)
-        await device.set_runtime_setpoint(1, vol=sp_1)
-        await device.set_runtime_setpoint(2, vol=sp_2)
-        assert sp_1 == await device.get_runtime_setpoint(1)
-        assert sp_2 == await device.get_runtime_setpoint(2)
+        sp_1 = round(uniform(1, 100), 1)  # minutes
+        sp_2 = round(uniform(1, 100), 1)
+        await device.set_runtime(1, runtime=sp_1)
+        await device.set_runtime(2, runtime=sp_2)
+        assert sp_1 == await device.get_runtime(1)
+        assert sp_2 == await device.get_runtime(2)
 
 
 @pytest.mark.skip

@@ -118,7 +118,7 @@ class Pump(Protocol):
         return self.hw.command(f'{channel}+{self._discrete2(diam)}')
 
     async def get_speed(self, channel) -> float:
-        """Get the speed, in RPM, of a channel."""
+        """Get the speed (RPM) of a channel."""
         return float(self.hw.query(f'{channel}S'))
 
     async def set_speed(self, channel: int, rpm: float) -> bool:
@@ -126,6 +126,16 @@ class Pump(Protocol):
         assert channel in self.channels
         rpm = int(round(rpm, 2) * 100)
         return self.hw.command(f'{channel}S{self._discrete3(rpm)}')
+
+    async def get_runtime(self, channel: int) -> float:
+        """Get the runtime (minutes) of a channel."""
+        assert channel in self.channels
+        return float(self.hw.query(f'{channel}xT')) / 10 / 60
+
+    async def set_runtime(self, channel: int, runtime: float) -> bool:
+        """Set the runtime (minutes) of a channel."""
+        assert channel in self.channels
+        return self.hw.command(f'{channel}xT{self._time2(runtime, units="m")}')
 
     async def get_volume_setpoint(self, channel) -> float:
         """Get the volume setpoint, in mL, of a channel."""
