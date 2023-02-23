@@ -62,7 +62,7 @@ class Pump(Protocol):
         """Return the pump model, firmware version, and pump head type code."""
         return self.hw.query('1#').strip()
 
-    async def get_serial_protocol_version(self):
+    async def get_serial_protocol_version(self) -> int:
         """Return serial protocol version."""
         return int(self.hw.query('1x!'))
 
@@ -95,7 +95,7 @@ class Pump(Protocol):
         assert channel in self.channels
         return self.hw.command(f'{channel}{mode.value}')
 
-    def get_number_channels(self):
+    def get_number_channels(self) -> int:
         """Get the number of (currently configured) pump channels.
 
         Return 0 if the pump is not configured for independent channels.
@@ -159,7 +159,7 @@ class Pump(Protocol):
             return allgood
         return self.hw.command(f'{channel}v{self._volume2(vol)}')
 
-    async def get_rotation(self, channel):
+    async def get_rotation(self, channel) -> Protocol.Rotation:
         """Return the rotation direction on the specified channel."""
         assert channel in self.channels
         rotation_code = self.hw.query(f'{channel}xD')
@@ -194,11 +194,11 @@ class Pump(Protocol):
         on = 1 if on else 0
         return bool(self.hw.query(f'1~{on}'))
 
-    async def has_event_messaging(self):
+    async def has_event_messaging(self) -> bool:
         """Return status of event messaging."""
         return self.hw.query('1xE') == '1'
 
-    async def set_event_messaging(self, on):
+    async def set_event_messaging(self, on) -> bool:
         """Enable or disable event messaging."""
         on = 1 if on else 0
         return bool(self.hw.command(f'1xE{on}'))
