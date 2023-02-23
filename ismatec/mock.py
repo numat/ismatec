@@ -68,7 +68,7 @@ class Communicator(MagicMock, Protocol):
         elif command == 'xM':  # get current mode
             return Protocol.Mode[self.state['channels'][channel - 1]['mode']].value
         elif command == 'xE':  # async event messages enabled?
-            return self.state['event_messaging']
+            return '1' if self.state['event_messaging'] else '0'
         elif command == '~':  # channel addressing
             return '1' if self.state['channel_addressing'] else '0'
         elif command.startswith('~'):
@@ -111,14 +111,14 @@ class Communicator(MagicMock, Protocol):
                 self.state['channels'][channel]['flowrate'] = 0.0
                 self.running[channel] = False
             return
-        elif command == 'xE':
-            self.state['event_messaging'] = bool(int(command[-1]))
         channel = int(command[0])
         if channel not in self.channels:
             raise ValueError
         command = command[1:]
         if command in ['J', 'K']:  # set to CCW (K) or CW (J) rotation
             self.state['channels'][channel - 1]['rotation'] = Protocol.Rotation(command).name
+        elif command.startswith('xE'):
+            self.state['event_messaging'] = bool(int(command[-1]))
         elif command == 'H':  # start
             if self._check_pump_will_run(channel):
                 self.running[channel] = True
