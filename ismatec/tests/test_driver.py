@@ -89,10 +89,10 @@ async def test_rotation_roundtrip():
     async with Pump('fakeip') as device:
         rotation_1 = choice(list(Protocol.Rotation))
         rotation_2 = choice(list(Protocol.Rotation))
-        await device.set_rotation(channel=1, rotation=rotation_1)
-        await device.set_rotation(channel=2, rotation=rotation_2)
-        assert rotation_1 == await device.get_rotation(channel=1)
-        assert rotation_2 == await device.get_rotation(channel=2)
+        await device.set_rotation(1, rotation=rotation_1)
+        await device.set_rotation(2, rotation=rotation_2)
+        assert rotation_1 == await device.get_rotation(1)
+        assert rotation_2 == await device.get_rotation(2)
 
 
 async def test_cannot_run_responses():
@@ -101,10 +101,10 @@ async def test_cannot_run_responses():
         # await device.set_pump_cycle_count(channel=1, count=0)
         await device.start(1)
         assert await device.get_run_failure_reason(1) == ('C', 0.0)  # 0 cycles
-        await device.set_flowrate(channel=2, flowrate=0)
+        await device.set_flowrate(2, flowrate=0)
         await device.start(2)
         assert await device.get_run_failure_reason(2) == ('R', 0.1386)  # 0 flowrate
-        await device.set_flowrate(channel=3, flowrate=0.1)
+        await device.set_flowrate(3, flowrate=0.1)
         await device.set_volume_setpoint(channel=3, vol=9999999)
         await device.start(3)
         assert await device.get_run_failure_reason(3) == ('V', 1256000.0)  # max volume
@@ -146,8 +146,8 @@ async def test_flowrate_roundtrip():
     async with Pump('fakeip') as device:
         flow_sp_1 = round(uniform(0.01, 0.14), 3)
         flow_sp_2 = round(uniform(0.01, 0.14), 3)
-        await device.set_flowrate(channel=1, flowrate=flow_sp_1)
-        await device.set_flowrate(channel=2, flowrate=flow_sp_2)
+        await device.set_flowrate(1, flowrate=flow_sp_1)
+        await device.set_flowrate(2, flowrate=flow_sp_2)
         assert flow_sp_1 == await device.get_flowrate(1)
         assert flow_sp_2 == await device.get_flowrate(2)
 
@@ -157,8 +157,8 @@ async def test_volume_setpoint_roundtrip():
     async with Pump('fakeip') as device:
         sp_1 = round(uniform(1, 100), 2)
         sp_2 = round(uniform(1, 100), 2)
-        await device.set_volume_setpoint(channel=1, vol=sp_1)
-        await device.set_volume_setpoint(channel=2, vol=sp_2)
+        await device.set_volume_setpoint(1, vol=sp_1)
+        await device.set_volume_setpoint(2, vol=sp_2)
         assert sp_1 == await device.get_volume_setpoint(1)
         assert sp_2 == await device.get_volume_setpoint(2)
 
@@ -168,8 +168,8 @@ async def test_runtime_setpoint_roundtrip():
     async with Pump('fakeip') as device:
         sp_1 = round(uniform(1, 100), 2)
         sp_2 = round(uniform(1, 100), 2)
-        await device.set_runtime_setpoint(channel=1, vol=sp_1)
-        await device.set_runtime_setpoint(channel=2, vol=sp_2)
+        await device.set_runtime_setpoint(1, vol=sp_1)
+        await device.set_runtime_setpoint(2, vol=sp_2)
         assert sp_1 == await device.get_runtime_setpoint(1)
         assert sp_2 == await device.get_runtime_setpoint(2)
 
@@ -180,8 +180,8 @@ async def test_pause_time_setpoint_roundtrip():
     async with Pump('fakeip') as device:
         sp_1 = round(uniform(1, 100), 2)
         sp_2 = round(uniform(1, 100), 2)
-        await device.set_pause_time_setpoint(channel=1, vol=sp_1)
-        await device.set_pause_time_setpoint(channel=2, vol=sp_2)
+        await device.set_pause_time_setpoint(1, vol=sp_1)
+        await device.set_pause_time_setpoint(2, vol=sp_2)
         assert sp_1 == await device.get_pause_time_setpoint(1)
         assert sp_2 == await device.get_pause_time_setpoint(2)
 
@@ -192,8 +192,8 @@ async def test_cycle_count_roundtrip():
     async with Pump('fakeip') as device:
         sp_1 = round(uniform(1, 10), 1)
         sp_2 = round(uniform(1, 10), 1)
-        await device.set_cycles(channel=1, vol=sp_1)
-        await device.set_cycles(channel=2, vol=sp_2)
+        await device.set_cycles(1, vol=sp_1)
+        await device.set_cycles(2, vol=sp_2)
         assert sp_1 == await device.get_cycles(1)
         assert sp_2 == await device.get_cycles(2)
 
@@ -231,7 +231,7 @@ async def test_tubing_diameter_roundtrip(tubing):
     """Confirm setting/getting the tubing Inner Diameter (ID) works."""
     async with Pump('fakeip') as device:
         channel = choice([1, 2, 3, 4])
-        await device.set_tubing_inner_diameter(tubing, channel)
+        await device.set_tubing_inner_diameter(channel, tubing)
         assert tubing == await device.get_tubing_inner_diameter(channel)
 
 
@@ -248,7 +248,7 @@ async def test_backsteps_roundtrip():
 async def test_reset():
     """Confirm resetting user-configurable data works."""
     async with Pump('fakeip') as device:
-        await device.set_rotation(channel=1, rotation=Protocol.Rotation.COUNTERCLOCKWISE)
+        await device.set_rotation(1, rotation=Protocol.Rotation.COUNTERCLOCKWISE)
         assert Protocol.Rotation.COUNTERCLOCKWISE == await device.get_rotation(1)
         await device.reset_default_settings()
         assert Protocol.Rotation.CLOCKWISE == await device.get_rotation(1)

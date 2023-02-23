@@ -68,19 +68,19 @@ class Pump(Protocol):
         """Return serial protocol version."""
         return int(self.hw.query('1x!'))
 
-    async def set_flowrate(self, channel, flowrate):
+    async def set_flowrate(self, channel: int, flowrate):
         """Set the flowrate of the specified channel."""
         assert channel in self.channels
         flow = self._volume2(flowrate)
         self.hw.command(f'{channel}f{flow}')
 
-    async def get_flowrate(self, channel) -> float:
+    async def get_flowrate(self, channel: int) -> float:
         """Return the current flowrate of the specified channel."""
         assert channel in self.channels
         reply = self.hw.query(f'{channel}f')
         return float(reply) / 1000 if reply else 0
 
-    async def get_running(self, channel) -> bool:
+    async def get_running(self, channel: int) -> bool:
         """Return True if the specified channel is running."""
         assert channel in self.channels
         # self.hw.running[channel] = self.hw.query(f'{channel}E') == '+'
@@ -107,40 +107,23 @@ class Pump(Protocol):
         except ValueError:
             return 0
 
-    async def get_tubing_inner_diameter(self, channel) -> float:
+    async def get_tubing_inner_diameter(self, channel: int) -> float:
         """Return the set peristaltic tubing inner diameter on the specified channel, in mm."""
         assert channel in self.channels
         response = self.hw.query(f'{channel}+')
         return float(response[:-3])
 
-    async def set_tubing_inner_diameter(self, diam, channel=None):
-        """
-        Set the peristaltic tubing inner diameter on the specified channel, in mm.
-
-        If no channel is specified, set it on all channels.
-        """
-        if channel is None:
-            allgood = True
-            for ch in self.channels:
-                allgood = allgood and self.set_tubing_inner_diameter(diam, channel=ch)
-            return allgood
+    async def set_tubing_inner_diameter(self, channel: int, diam):
+        """Set the peristaltic tubing inner diameter on the specified channel, in mm."""
         return self.hw.command(f'{channel}+{self._discrete2(diam)}')
 
     async def get_speed(self, channel) -> float:
         """Get the speed, in RPM, of a channel."""
         return float(self.hw.query(f'{channel}S'))
 
-    async def set_speed(self, rpm: float, channel=None) -> bool:
-        """Set the speed (RPM) of a channel.
-
-        If no channel is specified, set it on all channels.
-        """
+    async def set_speed(self, channel: int, rpm: float) -> bool:
+        """Set the speed (RPM) of a channel."""
         assert channel in self.channels
-        if channel is None:
-            allgood = True
-            for ch in self.channels:
-                allgood = allgood and bool(self.set_speed(rpm, channel=ch))
-            return allgood
         rpm = int(round(rpm, 2) * 100)
         return self.hw.command(f'{channel}S{self._discrete3(rpm)}')
 
@@ -148,39 +131,22 @@ class Pump(Protocol):
         """Get the volume setpoint, in mL, of a channel."""
         return float(self.hw.query(f'{channel}v')) / 1000
 
-    async def set_volume_setpoint(self, vol: float, channel=None) -> bool:
-        """Set the volume (mL) of a channel.
-
-        If no channel is specified, set it on all channels.
-        """
+    async def set_volume_setpoint(self, channel, vol: float) -> bool:
+        """Set the volume (mL) of a channel."""
         assert channel in self.channels
-        if channel is None:
-            allgood = True
-            for ch in self.channels:
-                allgood = allgood and bool(self.set_volume_setpoint(vol, channel=ch))
-            return allgood
         return self.hw.command(f'{channel}v{self._volume2(vol)}')
 
-    async def get_rotation(self, channel) -> Protocol.Rotation:
+    async def get_rotation(self, channel: int) -> Protocol.Rotation:
         """Return the rotation direction on the specified channel."""
         assert channel in self.channels
         rotation_code = self.hw.query(f'{channel}xD')
         return Protocol.Rotation(rotation_code)
 
-    async def set_rotation(self, rotation: Protocol.Rotation, channel=None):
-        """
-        Set the rotation direction on the specified channel.
-
-        If no channel is specified, set it on all channels.
-        """
-        if channel is None:
-            allgood = True
-            for ch in self.channels:
-                allgood = allgood and await self.set_rotation(rotation, channel=ch)
-            return allgood
+    async def set_rotation(self, channel: int, rotation: Protocol.Rotation):
+        """Set the rotation direction on the specified channel."""
         return self.hw.command(f'{channel}{rotation.value}')
 
-    async def get_run_failure_reason(self, channel) -> tuple:
+    async def get_run_failure_reason(self, channel: int) -> tuple:
         """Return reason for failure to run."""
         result = self.hw.query(f'{channel}xe')
         exponent = float(result[-2:].strip('+'))
@@ -191,7 +157,7 @@ class Pump(Protocol):
         """Return status of channel addressing."""
         return self.hw.query('1~') == '1'
 
-    async def set_channel_addressing(self, on):
+    async def set_channel_addressing(self, on) -> bool:
         """Enable or disable channel addressing."""
         on = 1 if on else 0
         return bool(self.hw.query(f'1~{on}'))
@@ -205,26 +171,14 @@ class Pump(Protocol):
         on = 1 if on else 0
         return bool(self.hw.command(f'1xE{on}'))
 
-    async def reset_default_settings(self):
+    async def reset_default_settings(self) -> bool:
         """Reset all user configurable data to default values."""
-        return self.hw.command('10')  # '1' is a pump address, not channel
+        return bool(self.hw.command('10'))  # '1' is a pump address, not channel
 
-    def continuous_flow(self, rate, channel=None):
-        """
-        Start continuous flow at rate (ml/min) on specified channel.
-
-        If no channel is specified, start flow on all channels.
-        """
-        if channel is None:
-            # this enables fairly synchronous start
-            channel = 0
-            maxrates = []
-            for ch in self.channels:
-                maxrates.append(float(self.hw.query(f'{ch}?').split(' ')[0]))
-            maxrate = min(maxrates)
-        else:
-            maxrate = float(self.hw.query(f'{channel}?').split(' ')[0])
-        assert channel in self.channels or channel == 0
+    async def continuous_flow(self, channel: int, rate: float):
+        """Start continuous flow at rate (ml/min) on specified channel."""
+        assert channel in self.channels
+        maxrate = float(self.hw.query(f'{channel}?').split(' ')[0])
         # flow rate mode
         self.hw.command(f'{channel}M')
         # set flow direction.  K=clockwise, J=counterclockwise
@@ -241,7 +195,7 @@ class Pump(Protocol):
         # start
         self.hw.command(f'{channel}H')
 
-    def dispense_vol_at_rate(self, vol, rate, units='ml/min', channel=None):
+    async def dispense_vol_at_rate(self, channel: int, vol, rate, units='ml/min'):
         """
         Dispense vol (ml) at rate on specified channel.
 
@@ -286,13 +240,9 @@ class Pump(Protocol):
         # start
         self.hw.command(f'{channel}H')
 
-    def dispense_vol_over_time(self, vol, time, channel=0):
-        """
-        Dispense vol (ml) over time (min) on specified channel.
-
-        If no channel is specified, dispense on all channels.
-        """
-        assert channel in self.channels or channel == 0
+    async def dispense_vol_over_time(self, channel: int, vol, time):
+        """Dispense vol (ml) over time (min) on specified channel."""
+        assert channel in self.channels
         # volume over time mode
         self.hw.command(f'{channel}G')
         # set flow direction
@@ -310,14 +260,9 @@ class Pump(Protocol):
         # start
         self.hw.command(f'{channel}H')
 
-    def dispense_flow_over_time(self, rate, time, units='ml/min', channel=0):
-        """
-        Dispense at a set flowrate over time (min) on specified channel.
-
-        Rate is specified by units, either 'ml/min' or 'rpm'.
-        If no channel is specified, dispense on all channels.
-        """
-        assert channel in self.channels or channel == 0
+    async def dispense_flow_over_time(self, channel: int, rate, time, units='ml/min'):
+        """Dispense at a set flowrate over time (min) on specified channel."""
+        assert channel in self.channels
         # set flow direction
         if rate < 0:
             self.hw.command(f'{channel}K')
@@ -337,29 +282,18 @@ class Pump(Protocol):
         # start
         self.hw.command(f'{channel}H')
 
-    async def start(self, channel=None):
-        """
-        Start any pumping operation on specified channel.
-
-        If no channel is specified, start on all channels.
-        """
-        # here we can start all channels by specifying 0
-        channel = 0 if channel is None else channel
-        assert channel in self.channels or channel == 0
-        # doing this misses the asynchronous stop signal, so set manually
+    async def start(self, channel: int):
+        """Start any pumping operation on specified channel."""
+        assert channel in self.channels
+        # doing this misses the asynchronous start signal, so set manually
         result = self.hw.command(f'{channel}H')
         self.hw.set_running_status(result, channel)
         return result
 
-    async def stop(self, channel=None):
-        """
-        Stop any pumping operation on specified channel.
-
-        If no channel is specified, stop on all channels.
-        """
+    async def stop(self, channel: int):
+        """Stop any pumping operation on specified channel."""
         # here we can stop all channels by specifying 0
-        channel = 0 if channel is None else channel
-        assert channel in self.channels or channel == 0
+        assert channel in self.channels
         # doing this misses the asynchronous stop signal, so set manually
         result = self.hw.command(f'{channel}I')
         self.hw.set_running_status(not result, channel)
