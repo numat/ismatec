@@ -233,6 +233,7 @@ class Protocol:
             number = 60 * number
         if units == 'h':
             number = 60 * number
+        number = int(number)
         return str(min(number, 35964000)).replace('.', '')
 
     def _time2(self, number, units='s'):
@@ -241,11 +242,12 @@ class Protocol:
         8 digits, 0 to 35964000 in units of 0.1s, left-padded with zeroes
         (0 to 999 hr)
         """
-        number = 10 * number  # 0.1s
+        number = int(10 * number)  # 0.1s
         if units == 'm':
             number = 60 * number
         if units == 'h':
             number = 60 * number
+        number = int(number)
         return str(min(number, 35964000)).replace('.', '').zfill(8)
 
     def _volume2(self, number):
