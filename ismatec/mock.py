@@ -56,8 +56,10 @@ class Pump(RealPump):
 class Communicator(MagicMock, Protocol):
     """Mock the pump communication hardware."""
 
-    def query(self, command):
+    def query(self, command) -> str:
         """Mock replies to queries."""
+        if command == '1~':  # channel addressing
+            return '1' if self.state['channel_addressing'] else '0'
         channel = int(command[0])
         if channel not in self.channels:
             raise ValueError
@@ -72,12 +74,8 @@ class Communicator(MagicMock, Protocol):
             return Protocol.Setpoint[self.state['channels'][channel - 1]['setpoint_type']].value
         elif command == 'xE':  # async event messages enabled?
             return '1' if self.state['event_messaging'] else '0'
-        elif command == '~':  # channel addressing
-            return '1' if self.state['channel_addressing'] else '0'
-        elif command.startswith('~'):
-            self.state['channel_addressing'] = bool(int(command[-1]))
         elif command == 'x!':  # protocol version
-            return '2'
+            return '8'
         elif command == '+':  # tubing diameter
             return str(self.state['channels'][channel - 1]['diameter']) + ' mm'
         elif command == 'S':  # get speed (RPM)
@@ -116,7 +114,10 @@ class Communicator(MagicMock, Protocol):
                 self.state['channels'][channel]['rotation'] = Protocol.Rotation.CLOCKWISE.name
                 self.state['channels'][channel]['flowrate'] = 0.0
                 self.running[channel] = False
-            return
+            return True
+        elif command.startswith('1~'):
+            self.state['channel_addressing'] = bool(int(command[-1]))
+            return True
         channel = int(command[0])
         if channel not in self.channels:
             raise ValueError
@@ -129,7 +130,7 @@ class Communicator(MagicMock, Protocol):
             if self._check_pump_will_run(channel):
                 self.running[channel] = True
             else:
-                return '-'
+                return False
         elif command == 'I':  # stop
             self.running[channel] = False
         elif command in [m.value for m in Protocol.Mode]:
@@ -154,7 +155,7 @@ class Communicator(MagicMock, Protocol):
             self.state['channels'][channel - 1]['runtime'] = seconds / 60
         else:
             raise NotImplementedError
-        return '*'
+        return True
 
     def _check_pump_will_run(self, channel):
         """Return whether or not the pump will run with the current settings."""

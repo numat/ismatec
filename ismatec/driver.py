@@ -187,7 +187,7 @@ class Pump(Protocol):
     async def set_channel_addressing(self, on) -> bool:
         """Enable or disable channel addressing."""
         on = 1 if on else 0
-        return bool(self.hw.query(f'1~{on}'))
+        return bool(self.hw.command(f'1~{on}'))
 
     async def has_event_messaging(self) -> bool:
         """Return status of event messaging."""

@@ -46,7 +46,7 @@ async def test_event_messaging_roundtrip():
 async def test_serial_protocol_version():
     """Confirm getting the serial protocol version."""
     async with Pump('fakeip') as device:
-        assert await device.get_serial_protocol_version() == 2
+        assert await device.get_serial_protocol_version() == 8
 
 
 # Pump drive
