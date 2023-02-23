@@ -137,9 +137,9 @@ async def test_setpoint_type_roundtrip():
     async with Pump('fakeip') as device:
         channel = choice([1, 2, 3, 4])
         await device.set_setpoint_type(channel, Protocol.Setpoint.RPM)
-        assert await device.get_setpoint_type(channel, Protocol.Setpoint.FLOWRATE)
-        await device.set_setpoint_type(channel, Protocol.Setpoint.ML)
-        assert await device.get_setpoint_type(channel, Protocol.Setpoint.FLOWRATE)
+        assert await device.get_setpoint_type(channel) == Protocol.Setpoint.RPM
+        await device.set_setpoint_type(channel, Protocol.Setpoint.FLOWRATE)
+        assert await device.get_setpoint_type(channel) == Protocol.Setpoint.FLOWRATE
 
 
 async def test_speed_roundtrip():

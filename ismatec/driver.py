@@ -156,6 +156,16 @@ class Pump(Protocol):
         """Set the rotation direction on the specified channel."""
         return self.hw.command(f'{channel}{rotation.value}')
 
+    async def get_setpoint_type(self, channel: int) -> Protocol.Setpoint:
+        """Return the setpoint type (RPM or flowrate) on the specified channel."""
+        assert channel in self.channels
+        type_code = self.hw.query(f'{channel}xf')
+        return Protocol.Setpoint(type_code)
+
+    async def set_setpoint_type(self, channel: int, type: Protocol.Setpoint):
+        """Set the setpoint type (RPM or flowrate) on the specified channel."""
+        return self.hw.command(f'{channel}xf{type.value}')
+
     async def get_run_failure_reason(self, channel: int) -> tuple:
         """Return reason for failure to run."""
         result = self.hw.query(f'{channel}xe')

@@ -32,6 +32,7 @@ class Pump(RealPump):
                 'rotation': Protocol.Rotation.CLOCKWISE,
                 'mode': Protocol.Mode.RPM,
                 'diameter': Protocol.Tubing[0],
+                'setpoint_type': Protocol.Setpoint.RPM,
                 'rpm': 0.0,
                 'volume': 0.0,
                 'cycles': 0,
@@ -67,6 +68,8 @@ class Communicator(MagicMock, Protocol):
             return Protocol.Rotation[self.state['channels'][channel - 1]['rotation']].value
         elif command == 'xM':  # get current mode
             return Protocol.Mode[self.state['channels'][channel - 1]['mode']].value
+        elif command == 'xf':  # get current setpoint type
+            return Protocol.Setpoint[self.state['channels'][channel - 1]['setpoint_type']].value
         elif command == 'xE':  # async event messages enabled?
             return '1' if self.state['event_messaging'] else '0'
         elif command == '~':  # channel addressing
@@ -128,6 +131,9 @@ class Communicator(MagicMock, Protocol):
             self.running[channel] = False
         elif command in [m.value for m in Protocol.Mode]:
             self.state['channels'][channel - 1]['mode'] = Protocol.Mode(command).name
+        elif command.startswith('xf'):  # set mode to RPM (0) or flowrate (1)
+            type = Protocol.Setpoint(command[-1]).name
+            self.state['channels'][channel - 1]['setpoint_type'] = type
         elif command.startswith('+'):  # set tubing ID
             self.state['channels'][channel - 1]['diameter'] = float(command[1:]) / 100
         elif command.startswith('S'):  # set speed (RPM)

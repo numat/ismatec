@@ -289,8 +289,8 @@ class Protocol:
     class Setpoint(Enum):
         """Possible setpoint types."""
 
-        RPM = 0
-        FLOWRATE = 1
+        RPM = '0'
+        FLOWRATE = '1'
 
     class Rotation(Enum):
         """Possible rotation directions."""
