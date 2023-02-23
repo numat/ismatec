@@ -124,7 +124,7 @@ class Pump(Protocol):
     async def set_speed(self, channel: int, rpm: float) -> bool:
         """Set the speed (RPM) of a channel."""
         assert channel in self.channels
-        rpm = int(round(rpm, 2) * 100)
+        rpm = int(round(rpm * 100, 2))
         return self.hw.command(f'{channel}S{self._discrete3(rpm)}')
 
     async def get_runtime(self, channel: int) -> float:
