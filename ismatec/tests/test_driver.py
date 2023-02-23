@@ -57,6 +57,7 @@ async def test_start_stop_roundtrip():
     async with Pump('fakeip') as device:
         await device.set_mode(1, Protocol.Mode.VOL_AT_RATE)
         await device.set_volume_setpoint(1, 10)
+        await device.set_setpoint_type(1, Protocol.Setpoint.FLOWRATE)
         await device.set_flowrate(1, flowrate=0.1)
         await device.set_mode(2, Protocol.Mode.FLOWRATE)
         await device.set_flowrate(2, flowrate=0.1)
