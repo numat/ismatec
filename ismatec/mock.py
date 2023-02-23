@@ -73,12 +73,12 @@ class Communicator(MagicMock, Protocol):
             self.state['channel_addressing'] = bool(int(command[-1]))
         elif command == 'x!':  # protocol version
             return '2'
-        elif command == '+':
-            return str(self.state['channels'][channel - 1]['diameter'] + ' mm')
+        elif command == '+':  # tubing diameter
+            return str(self.state['channels'][channel - 1]['diameter']) + ' mm'
         elif command == 'S':  # get speed (RPM)
             return str(self.state['channels'][channel - 1]['rpm'])
         elif command == 'v':  # get volume (mL)
-            return str(self.state['channels'][channel - 1]['volume'] * 100) + 'E+1'
+            return str(round(self.state['channels'][channel - 1]['volume'] * 100, 2)) + 'E+1'
         elif command == '#':  # pump version
             return 'REGLO ICC 0208 306'
         else:
