@@ -90,6 +90,9 @@ class Communicator(MagicMock, Protocol):
             return 'REGLO ICC 0208 306'
         elif command == 'xe':
             return self._get_cannot_run_response(channel)
+        elif command in ['!', '?']:
+            return ('0.281 ml/min' if self.state['channels'][channel - 1]['diameter'] == 0.19
+                    else '0.138 ml/min')
         else:
             raise NotImplementedError
 
@@ -103,7 +106,7 @@ class Communicator(MagicMock, Protocol):
             return 'R 1386E-1'  # flowrate = 0
         elif (self.state['channels'][channel - 1]['mode'].startswith('VOL_')
               and self.state['channels'][channel - 1]['volume'] >= 1256):
-            return 'V 1256E+6'  # flowrate > max
+            return 'V 8308E+3'  # flowrate > max
         return ValueError
 
     def command(self, command):

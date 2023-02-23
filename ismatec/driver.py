@@ -166,6 +166,13 @@ class Pump(Protocol):
         """Set the setpoint type (RPM or flowrate) on the specified channel."""
         return self.hw.command(f'{channel}xf{type.value}')
 
+    async def get_max_flowrate(self, channel: int, calibrated=False):
+        """Get the max flowrate achieveable with current settings, in mL/min."""
+        if calibrated:
+            return self.hw.query(f'{channel}!')
+        else:
+            return self.hw.query(f'{channel}?')
+
     async def get_run_failure_reason(self, channel: int) -> tuple:
         """Return reason for failure to run."""
         result = self.hw.query(f'{channel}xe')

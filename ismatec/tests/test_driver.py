@@ -213,14 +213,11 @@ async def test_cycle_count_roundtrip():
 async def test_max_flowrate():
     """Confirm getting the (computed) maxmimum flowrates works."""
     async with Pump('fakeip') as device:
-        raise NotImplementedError
-        # set a known tubing size for channel 1
-        # set a different known tubing size for channel 2
-        # calibrate channel 2
-        # compute max flowrate with that tubing size for channel 1
-        # compute max calibrated flowrate for channel 2
-        assert max1 == await device.get_max_flowrate(1, calibrated=False)
-        assert max2 == await device.get_max_flowrate(2, calibrated=True)
+        await device.reset_default_settings()
+        assert '0.138 ml/min' == await device.get_max_flowrate(1, calibrated=False)
+        await device.set_tubing_inner_diameter(1, diam=0.19)
+        assert '0.281 ml/min' == await device.get_max_flowrate(1, calibrated=False)
+        assert '0.281 ml/min' == await device.get_max_flowrate(1, calibrated=True)
 
 
 @pytest.mark.skip
