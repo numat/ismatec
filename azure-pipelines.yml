@@ -10,8 +10,6 @@ pool:
   vmImage: 'ubuntu-latest'
 strategy:
   matrix:
-    Python37:
-      PYTHON_VERSION: '3.7'
     Python38:
       PYTHON_VERSION: '3.8'
     Python39:
@@ -47,6 +45,11 @@ steps:
     testResultsFiles: 'reports/test-coverage.xml'
     testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version)'
   condition: succeededOrFailed()
+
+- script: |
+    cd ismatec
+    pytest --junitxml=../reports/test-coverage.xml  --cov=. --cov-report=xml
+  displayName: 'Run tests'
 
 - task: PublishCodeCoverageResults@1
   inputs:
