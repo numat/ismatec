@@ -11,7 +11,7 @@ with open('README.md', 'r') as in_file:
 
 setup(
     name="ismatec",
-    version="0.3.0",
+    version="0.4.0",
     description=(
         "Library for driving the Ismatec Reglo ICC peristaltic pump."
         "Communication is done over direct RS232 or through a serial server."
@@ -24,6 +24,16 @@ setup(
     install_requires=[
         "pyserial",
     ],
+    extras_require={
+        'test': ['pytest>=6,<8',
+                 'pytest-cov>=4,<5',
+                 'pytest-asyncio==0.*',
+                 'pytest-xdist==3.*',
+                 'flake8==6.*',
+                 'flake8-docstrings==1.*',
+                 'mypy==1.0.1',
+                 'types-pyserial']
+    },
     entry_points={
         "console_scripts": [("ismatec = ismatec:command_line")]
     },
