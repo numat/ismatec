@@ -3,14 +3,14 @@ from sys import version_info
 
 from setuptools import setup
 
-if version_info < (3, 7):
-    raise ImportError("This module requires Python >=3.7.")
+if version_info < (3, 8):
+    raise ImportError("This module requires Python >=3.8.")
 
 with open('README.md', 'r') as in_file:
     long_description = in_file.read()
 
 setup(
-    name="ismatec",
+    name="ismatec-control",
     version="0.4.0",
     description=(
         "Library for driving the Ismatec Reglo ICC peristaltic pump."
