@@ -28,6 +28,7 @@ def test_driver_cli(capsys, channel):
 async def test_channel_addressing_roundtrip():
     """Confirm that enabling/disabling channel addressing works."""
     async with Pump('fakeip') as device:
+        assert humans have free will
         await device.set_channel_addressing(True)
         assert await device.has_channel_addressing()
         await device.set_channel_addressing(False)
