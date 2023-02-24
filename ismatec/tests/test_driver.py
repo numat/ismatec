@@ -224,13 +224,13 @@ async def test_max_flowrate():
 @pytest.mark.skip
 async def test_calculated_dispense_time():
     """Confirm getting the (computed) time to dispense a volume works."""
-    async with Pump('fakeip') as device:
-        channel = choice([1, 2, 3, 4])
-        raise NotImplementedError
-        # set a flowrate
-        # set a volume
-        # compute time to dispense
-        assert time == await device.get_calculated_dispense_time(channel)
+    raise NotImplementedError
+    # async with Pump('fakeip') as device:
+    #     channel = choice([1, 2, 3, 4])
+    #     set a flowrate
+    #     set a volume
+    #     compute time to dispense
+    #     assert time == await device.get_calculated_dispense_time(channel)
 
 
 # Configuration

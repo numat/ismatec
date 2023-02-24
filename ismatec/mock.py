@@ -56,7 +56,7 @@ class Pump(RealPump):
 class Communicator(MagicMock, Protocol):
     """Mock the pump communication hardware."""
 
-    def query(self, command) -> str:
+    def query(self, command) -> str:  # noqa: C901
         """Mock replies to queries."""
         if command == '1~':  # channel addressing
             return '1' if self.state['channel_addressing'] else '0'
@@ -107,7 +107,7 @@ class Communicator(MagicMock, Protocol):
             return 'V 8308E+3'  # flowrate > max
         return ValueError
 
-    def command(self, command):
+    def command(self, command):  # noqa: C901
         """Mock commands."""
         if command == '10':  # reset all settings
             for channel, _ in enumerate(self.channels):
