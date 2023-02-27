@@ -123,7 +123,7 @@ class SerialCommunicator(Communicator):
         if self.req_q.qsize():
             # disable asynchronous communication
             self.ser.command(b'1xE0\r')
-            self.ser.read(size=1)
+            self.ser.read(1)
             # empty the ingoing buffer
             flush = self.ser.read(100)
             if flush:
@@ -135,7 +135,7 @@ class SerialCommunicator(Communicator):
             self.res_q.put(res)
             # enable asynchronous communication again
             self.ser.command(b'1xE1\r')
-            self.ser.read(size=1)
+            self.ser.read(1)
         line = self.ser.readline()
         if len(line):
             # check for running message
