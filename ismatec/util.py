@@ -122,19 +122,19 @@ class SerialCommunicator(Communicator):
         # deal with commands and queries found in the request queue
         if self.req_q.qsize():
             # disable asynchronous communication
-            self.ser.command(b'1xE0\r')
+            self.command(b'1xE0\r')
             self.ser.read(1)
             # empty the ingoing buffer
             flush = self.ser.read(100)
             if flush:
                 logger.debug(f'flushed garbage before query: "{flush!r}"')
             # write command and get result
-            cmd = self.que_q.get()
-            self.ser.command(cmd.encode() + b'\r')
+            cmd = self.req_q.get()
+            self.command(cmd.encode() + b'\r')
             res = self.ser.readline().strip()
             self.res_q.put(res)
             # enable asynchronous communication again
-            self.ser.command(b'1xE1\r')
+            self.command(b'1xE1\r')
             self.ser.read(1)
         line = self.ser.readline()
         if len(line):
