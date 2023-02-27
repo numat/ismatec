@@ -33,7 +33,11 @@ steps:
 
 - script: |
     flake8
-  displayName: 'Lint Code'
+  displayName: 'Lint code with flake8'
+
+- script: |
+    mypy ismatec
+  displayName: 'Check types with mypy'
 
 - script: |
     cd ismatec
