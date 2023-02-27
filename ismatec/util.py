@@ -27,8 +27,8 @@ class Communicator(threading.Thread):
         self._stop_event = threading.Event()
 
         # internal request and response queues
-        self.req_q = Queue()
-        self.res_q = Queue()
+        self.req_q: Queue = Queue()
+        self.res_q: Queue = Queue()
 
         # dictionary of channel running status
         self.running = {}
@@ -127,7 +127,7 @@ class SerialCommunicator(Communicator):
             # empty the ingoing buffer
             flush = self.ser.read(100)
             if flush:
-                logger.debug(f'flushed garbage before query: "{flush}"')
+                logger.debug(f'flushed garbage before query: "{flush!r}"')
             # write command and get result
             cmd = self.que_q.get()
             self.ser.command(cmd.encode() + b'\r')

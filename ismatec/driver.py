@@ -1,7 +1,7 @@
 """A single Ismatec Reglo ICC multi-channel peristaltic pump class."""
 import logging
 
-from .util import Protocol, SerialCommunicator, SocketCommunicator
+from .util import Communicator, Protocol, SerialCommunicator, SocketCommunicator
 
 logger = logging.getLogger('ismatec')
 
@@ -15,14 +15,14 @@ class Pump(Protocol):
     The, which can be controlled independently, are available as self.channels.
     """
 
-    def __init__(self, address=None, debug=False, **kwargs):
+    def __init__(self, address=None, debug=False, **kwargs) -> None:
         if debug:
             logger.setLevel(logging.DEBUG)
         """Initialize the Communicator and setup the pump to accept commands."""
         # make a hardware Communicator object
         if type(address) == str:
             # serial
-            self.hw = SerialCommunicator(address=address, **kwargs)
+            self.hw: Communicator = SerialCommunicator(address=address, **kwargs)
         elif type(address) == tuple and len(address) == 2:
             # socket
             self.hw = SocketCommunicator(address=address, **kwargs)
