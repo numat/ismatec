@@ -1,4 +1,9 @@
-Python ≥3.7 driver and command-line tool for RegloICC pumps.
+ismatec
+=======
+
+Python ≥3.8 driver and command-line tool for Masterflex® Ismatec® Reglo ICC Digital Pumps.
+
+![](https://us.vwr.com/stibo/bigweb/std.lang.all/21/78/38732178.jpg)
 
 Installation
 ============
@@ -10,37 +15,35 @@ pip install ismatec
 Usage
 =====
 
-### Command Line
+## Command Line
 
 ```
 $ ismatec <serial-to-ethernet-ip> --port <port> --channel 1
 $ ismatec /dev/ttyUSB0 --channel 2
 ```
 
-This will print the current flowrate for the selected channel, using either an
-Ethernet-to-serial adapater, or a serial port.
+This will print the current flow rate for the selected channel, using either the serial port or an ethernet-to-serial adapter.
 
-### Python
+## Python
 
-This uses Python ≥3.5's async/await syntax to asynchronously communicate with
-a RegloICC pump. For example:
+This uses Python ≥3.5's async/await syntax to asynchronously communicate with a Ismatec® Reglo ICC pump. For example:
 
 ```python
 import asyncio
 from ismatec import Pump
 
 async def get():
-    async with Pump(('serial-to-ethernet-ip', 23)) as pump:
-        print(await pump.get_pump_version())
+    async with Pump('serial-to-ethernet-ip', 23) as pump:
+        print(await pump.get_version())
 
 asyncio.run(get())
 ```
 
 Acknowledgements
 ================
-Original project located at https://github.com/alexbjorling/lib-maxiv-regloicc.
-Copyright (C) 2017 Alexander Bjoerling
-Copyright (C) 2022 Alexander Ruddick
 
-No affiliation to the Hein group.  (https://gitlab.com/heingroup/ismatec).
-As of 2023 that project appears to be abandoned.
+©2022 Alexander Ruddick
+
+[Original project](https://github.com/alexbjorling/lib-maxiv-regloicc) ©2017 Alexander Bjoerling
+
+No affiliation to [the Hein group](https://gitlab.com/heingroup/ismatec). As of 2023, that project appears to have been abandoned.
