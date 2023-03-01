@@ -135,7 +135,8 @@ class Pump(Protocol):
     async def set_runtime(self, channel: int, runtime: float) -> bool:
         """Set the runtime (minutes) of a channel."""
         assert channel in self.channels
-        return self.hw.command(f'{channel}xT{self._time2(runtime, units='m')}')
+        packed_time = self._time2(runtime, units='m')
+        return self.hw.command(f'{channel}xT{packed_time}')
 
     async def get_volume_setpoint(self, channel) -> float:
         """Get the volume setpoint (mL) of a channel."""

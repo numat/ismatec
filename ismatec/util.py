@@ -224,8 +224,42 @@ class SocketCommunicator(Communicator):
         self.socket.close()
 
 
+
 class Protocol:
     """Convert to various (dumb) datatypes used for the protocol."""
+    requests = {
+        'pump version': '1#',
+        'protocol version': '1x!',
+        'set flow rate': '{channel}f{flow_v2}',
+        'get flow rate': '{channel}f',
+        'get mode': '{channel}xM',
+        'set mode': ...
+
+    }
+    responses = {
+        'setpoint': {
+            '0': 'rpm',
+            '1': 'flow rate',
+        },
+        'rotation': {
+            'J': 'clockwise',
+            'K': 'counterclockwise',
+        },
+        'mode': {
+            'G': 'vol over time',
+            'L': 'rpm',
+            'M': 'flow rate',
+            'N': 'time',
+            'O': 'vol at rate',
+            'P': 'time pause',
+            'Q': 'vol pause',
+        },
+    }
+    tubing = [
+        0.13, 0.19, 0.25, 0.38, 0.44, 0.51, 0.57, 0.64, 0.76, 0.89, 0.95, 1.02, 1.09,
+        1.14, 1.22, 1.30, 1.43, 1.52, 1.65, 1.75, 1.85, 2.06, 2.29, 2.54, 2.79, 3.17
+    ]
+
 
     def _time1(self, number, units='s'):
         """Convert number to 'time type 1'.
@@ -283,31 +317,3 @@ class Protocol:
         """
         assert 0 <= number < 1_000_000
         return str(number).zfill(6)
-
-    class Mode(Enum):
-        """Possible operating modes."""
-
-        RPM = 'L'
-        FLOWRATE = 'M'
-        VOL_AT_RATE = 'O'
-        VOL_OVER_TIME = 'G'
-        VOL_PAUSE = 'Q'
-        TIME = 'N'
-        TIME_PAUSE = 'P'
-
-    class Setpoint(Enum):
-        """Possible setpoint types."""
-
-        RPM = '0'
-        FLOWRATE = '1'
-
-    class Rotation(Enum):
-        """Possible rotation directions."""
-
-        CLOCKWISE = 'J'
-        COUNTERCLOCKWISE = 'K'
-
-    Tubing = [
-        0.13, 0.19, 0.25, 0.38, 0.44, 0.51, 0.57, 0.64, 0.76, 0.89, 0.95, 1.02, 1.09,
-        1.14, 1.22, 1.30, 1.43, 1.52, 1.65, 1.75, 1.85, 2.06, 2.29, 2.54, 2.79, 3.17
-    ]
