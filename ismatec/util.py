@@ -9,7 +9,6 @@ import socket
 import threading
 import time
 from abc import abstractmethod
-from enum import Enum
 from queue import Queue
 
 import serial
@@ -224,9 +223,9 @@ class SocketCommunicator(Communicator):
         self.socket.close()
 
 
-
 class Protocol:
     """Convert to various (dumb) datatypes used for the protocol."""
+
     requests = {
         'pump version': '1#',
         'protocol version': '1x!',
@@ -259,7 +258,6 @@ class Protocol:
         0.13, 0.19, 0.25, 0.38, 0.44, 0.51, 0.57, 0.64, 0.76, 0.89, 0.95, 1.02, 1.09,
         1.14, 1.22, 1.30, 1.43, 1.52, 1.65, 1.75, 1.85, 2.06, 2.29, 2.54, 2.79, 3.17
     ]
-
 
     def _time1(self, number, units='s'):
         """Convert number to 'time type 1'.
