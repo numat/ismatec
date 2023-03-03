@@ -70,7 +70,7 @@ class Pump():
         """Provide exit to the context manager."""
         self.hw._stop_event.set()
 
-    async def get_version(self) -> str:
+    async def get_version(self) -> dict:
         """Get device version information."""
         pump_version = self.hw.query('1#').strip().split(' ')
         protocol_version = int(self.hw.query('1x!'))
@@ -351,7 +351,7 @@ class Pump():
                 self.running[ch] = status
         elif channel == 0:
             logger.debug(f'manually setting running status {status} on all channels (found %s)' %
-                            list(self.running.keys()))
+                         list(self.running.keys()))
             for ch in list(self.running.keys()):
                 self.running[ch] = status
         else:

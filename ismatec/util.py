@@ -32,8 +32,8 @@ class Communicator(threading.Thread):
         """Create queues for commands and responses."""
         super(Communicator, self).__init__()
         self._stop_event = threading.Event()
-        self.requests : Queue = Queue()
-        self.responses : Queue = Queue()
+        self.requests: Queue = Queue()
+        self.responses: Queue = Queue()
 
     def run(self):
         """Run continuously until threading.Event fires."""
@@ -120,11 +120,11 @@ class SerialCommunicator(Communicator):
             stopbits=1,
         )
 
-    def write(self, message : str):
+    def write(self, message: str):
         """Write a message to the device."""
         self.ser.write(message.encode() + b'\r')
 
-    def read(self, length : int):
+    def read(self, length: int):
         """Read a fixed number of bytes from the device."""
         return self.ser.read(length)
 
@@ -148,11 +148,11 @@ class SocketCommunicator(Communicator):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect(address)
 
-    def write(self, message : str):
+    def write(self, message: str):
         """Write a message to the device."""
         self.socket.send(message.encode() + b'\r')
 
-    def read(self, length : int):
+    def read(self, length: int):
         """Read a fixed number of bytes from the device."""
         ready = select.select([self.socket], [], [], self.timeout)
         if ready[0]:
