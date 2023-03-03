@@ -1,4 +1,4 @@
-"""Python driver for Ismatec RegloICC peristaltic pumps."""
+"""Python driver for Ismatec Reglo ICC peristaltic pumps."""
 from sys import version_info
 
 from setuptools import setup
@@ -10,32 +10,33 @@ with open('README.md', 'r') as in_file:
     long_description = in_file.read()
 
 setup(
-    name="ismatec-control",
-    version="0.4.0",
-    description=(
-        "Library for driving the Ismatec Reglo ICC peristaltic pump."
-        "Communication is done over direct RS232 or through a serial server."
-    ),
-    author="Alex Ruddick",
-    author_email="a.ruddick@numat-tech.com",
-    license="GPLv3",
-    url="https://githut.com/numat/ismatec",
-    packages=["ismatec"],
+    name='ismatec-control',
+    version='0.4.0',
+    description="Driver for Ismatec Reglo ICC peristaltic pumps.",
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    author='Alex Ruddick',
+    author_email='a.ruddick@numat-tech.com',
+    license='GPLv3',
+    url='https://github.com/numat/ismatec',
+    packages=['ismatec'],
     install_requires=[
-        "pyserial",
+        'pyserial',
     ],
     extras_require={
-        'test': ['pytest>=6,<8',
-                 'pytest-cov>=4,<5',
-                 'pytest-asyncio==0.*',
-                 'pytest-xdist==3.*',
-                 'flake8==6.*',
-                 'flake8-docstrings==1.*',
-                 'mypy==1.0.1',
-                 'types-pyserial']
+        'test': [
+            'pytest>=6,<8',
+            'pytest-cov>=4,<5',
+            'pytest-asyncio==0.*',
+            'pytest-xdist==3.*',
+            'flake8==6.*',
+            'flake8-docstrings==1.*',
+            'mypy==1.0.1',
+            'types-pyserial',
+        ],
     },
     entry_points={
-        "console_scripts": [("ismatec = ismatec:command_line")]
+        'console_scripts': [('ismatec = ismatec:command_line')],
     },
     classifiers=[
         "Development Status :: 4 - Beta",

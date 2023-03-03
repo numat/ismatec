@@ -1,4 +1,8 @@
-"""Serial or Socket (serial gateway) interfaces for Ismatec Reglo ICC peristaltic pump."""
+"""Transports and Protocol for Ismatec Reglo ICC peristaltic pump.
+
+Distributed under the GNU General Public License v3
+Copyright (C) 2022 NuMat Technologies
+"""
 import logging
 import select
 import socket
@@ -14,14 +18,15 @@ logger = logging.getLogger('ismatec')
 
 
 class Communicator(threading.Thread):
-    """Class representing the hardware interface to the Ismatec Reglo ICC peristaltic pump.
+    """Interface to the Ismatec Reglo ICC peristaltic pump.
 
-    It handles the communication via direct serial or through a serial server, and keeps track
-    of the messy mix of synchronous (command) and asynchronous (status) communication.
+    It handles the communication via direct serial or through a serial
+    server, and keeps track of the messy mix of synchronous (command)
+    and asynchronous (status) communication.
     """
 
-    def __init__(self, address=None,
-                 baudrate=9600, data_bits=8, stop_bits=1, parity='N', timeout=.05):
+    def __init__(self, address=None, baudrate=9600, data_bits=8, stop_bits=1,
+                 parity='N', timeout=.05):
         """Initialize the serial link and create queues for commands and responses."""
         super(Communicator, self).__init__()
         self._stop_event = threading.Event()
@@ -220,50 +225,53 @@ class SocketCommunicator(Communicator):
 
 
 class Protocol:
-    """Convert to various (dumb) datatypes used for the communicator protocol."""
+    """Convert to various (dumb) datatypes used for the protocol."""
 
     def _time1(self, number, units='s'):
         """Convert number to 'time type 1'.
 
-        1-8 digits, 0 to 35964000 in units of 0.1s
-        (0 to 999 hr)
+        1-8 digits, 0 to 35964000 in units of 0.1s (0 to 999 hr)
         """
-        number = 10 * number  # 0.1s
-        if units == 'm':
-            number = 60 * number
-        if units == 'h':
-            number = 60 * number
-        number = int(number)
+        unit_options = {
+            's': 10,
+            'm': 600,
+            'h': 36000,
+        }
+        number = int(number * unit_options[units])
         return str(min(number, 35964000)).replace('.', '')
 
     def _time2(self, number, units='s'):
         """Convert number to 'time type 2'.
 
-        8 digits, 0 to 35964000 in units of 0.1s, left-padded with zeroes
-        (0 to 999 hr)
+        This is an 8-digit left-padded version of `_time1`.
         """
-        number = int(10 * number)  # 0.1s
-        if units == 'm':
-            number = 60 * number
-        if units == 'h':
-            number = 60 * number
-        number = int(number)
-        return str(min(number, 35964000)).replace('.', '').zfill(8)
-
-    def _volume2(self, number):
-        # convert number to "volume type 2"
-        number = f'{abs(number):.3e}'
-        number = number[0] + number[2:5] + number[-3] + number[-1]
-        return number
+        return self._time1(number, units).zfill(8)
 
     def _volume1(self, number):
-        # convert number to "volume type 1"
-        number = f'{abs(number):.3e}'
-        number = number[0] + number[2:5] + 'E' + number[-3] + number[-1]
-        return number
+        """Convert number to 'volume type 1'.
+
+        mmmmEse — Represents the scientific notation of m.mmm x 10se.
+        For example, 1.200 x 10-2 is represented with 1200E-2. Note
+        that the decimal point is inferred after the first character.
+        """
+        s = f'{abs(number):.3e}'
+        return f'{s[0]}{s[2:5]}E{s[-3]}{s[-1]}'
+
+    def _volume2(self, number):
+        """Convert number to 'volume type 2'.
+
+        This is undocumented. It appears to be 'volume type 1' without
+        the E, and can be mL or mL/min depending on use case.
+        """
+        return self._volume1(number).replace('E', '')
 
     def _discrete2(self, number):
-        # convert float to "discrete type 2"
+        """Convert number to 'discrete type 2'.
+
+        Four characters representing a discrete integer value in base
+        10. The value is right-justified. Unused digits to the left are
+        zeros.
+        """
         s = str(number).strip('0')
         whole, decimals = s.split('.')
         return '%04d' % int(whole + decimals)
@@ -271,8 +279,10 @@ class Protocol:
     def _discrete3(self, number):
         """Convert number to 'discrete type 3'.
 
-        6 digits, 0 to 999999, left-padded with zeroes
+        Six characters in base 10. The value is right-justified.
+        Unused digits to the left are zeros.
         """
+        assert 0 <= number < 1_000_000
         return str(number).zfill(6)
 
     class Mode(Enum):
