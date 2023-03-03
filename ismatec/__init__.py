@@ -1,4 +1,4 @@
-"""Python driver for Ismatec RegloICC peristaltic pump.
+"""Python driver for Ismatec Reglo ICC peristaltic pump.
 
 Distributed under the GNU General Public License v3
 Copyright (C) 2022 NuMat Technologies
@@ -7,7 +7,7 @@ from ismatec.driver import Pump
 
 
 def command_line(args=None):
-    """CLI interface, accessible when installed through pip."""
+    """Command-line tool for reading Ismatec Reglo ICC pumps."""
     import argparse
     import asyncio
     import json
@@ -20,7 +20,7 @@ def command_line(args=None):
     parser.add_argument('-p', '--port', help="The port of the pump (default 23)",
                         type=int, default=23)
     parser.add_argument('--channel', '-c', default=None, type=int,
-                        help="Specify channel in case of multiple-channel pump.")
+                        help="Specify channel in case of multi-channel pump.")
     args = parser.parse_args(args)
 
     async def run():

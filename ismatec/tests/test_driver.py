@@ -3,6 +3,7 @@ from random import choice, randint, uniform
 from unittest import mock
 
 import pytest
+
 from ismatec import command_line
 from ismatec.mock import Pump
 from ismatec.util import Protocol

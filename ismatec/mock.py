@@ -1,4 +1,8 @@
-"""Contains mocks for driver objects for offline testing."""
+"""Driver mock classes for offline testing.
+
+Distributed under the GNU General Public License v3
+Copyright (C) 2022 NuMat Technologies
+"""
 
 from unittest.mock import MagicMock
 
@@ -159,7 +163,7 @@ class Communicator(MagicMock, Protocol):
         return True
 
     def _check_pump_will_run(self, channel):
-        """Return whether or not the pump will run with the current settings."""
+        """Return if the pump will run with the current settings."""
         return not ((self.state['channels'][channel - 1]['mode'] == Protocol.Mode.VOL_PAUSE.name
                     and self.state['channels'][channel - 1]['cycles'] == 0)
                     or (self.state['channels'][channel - 1]['mode'] == Protocol.Mode.FLOWRATE.name

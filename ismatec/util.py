@@ -1,4 +1,8 @@
-"""Serial or Socket (serial gateway) interfaces for Ismatec Reglo ICC peristaltic pump."""
+"""Transports and Protocol for Ismatec Reglo ICC peristaltic pump.
+
+Distributed under the GNU General Public License v3
+Copyright (C) 2022 NuMat Technologies
+"""
 import logging
 import select
 import socket
@@ -14,14 +18,15 @@ logger = logging.getLogger('ismatec')
 
 
 class Communicator(threading.Thread):
-    """Class representing the hardware interface to the Ismatec Reglo ICC peristaltic pump.
+    """Interface to the Ismatec Reglo ICC peristaltic pump.
 
-    It handles the communication via direct serial or through a serial server, and keeps track
-    of the messy mix of synchronous (command) and asynchronous (status) communication.
+    It handles the communication via direct serial or through a serial
+    server, and keeps track of the messy mix of synchronous (command)
+    and asynchronous (status) communication.
     """
 
-    def __init__(self, address=None,
-                 baudrate=9600, data_bits=8, stop_bits=1, parity='N', timeout=.05):
+    def __init__(self, address=None, baudrate=9600, data_bits=8, stop_bits=1,
+                 parity='N', timeout=.05):
         """Initialize the serial link and create queues for commands and responses."""
         super(Communicator, self).__init__()
         self._stop_event = threading.Event()
@@ -220,13 +225,12 @@ class SocketCommunicator(Communicator):
 
 
 class Protocol:
-    """Convert to various (dumb) datatypes used for the communicator protocol."""
+    """Convert to various (dumb) datatypes used for the protocol."""
 
     def _time1(self, number, units='s'):
         """Convert number to 'time type 1'.
 
-        1-8 digits, 0 to 35964000 in units of 0.1s
-        (0 to 999 hr)
+        1-8 digits, 0 to 35964000 in units of 0.1s (0 to 999 hr)
         """
         number = 10 * number  # 0.1s
         if units == 'm':
@@ -239,8 +243,7 @@ class Protocol:
     def _time2(self, number, units='s'):
         """Convert number to 'time type 2'.
 
-        8 digits, 0 to 35964000 in units of 0.1s, left-padded with zeroes
-        (0 to 999 hr)
+        This is an 8-digit left-padded version of `_time1`.
         """
         number = int(10 * number)  # 0.1s
         if units == 'm':
