@@ -1,8 +1,9 @@
-"""Transports and Protocol for Ismatec Reglo ICC peristaltic pump.
+"""Transports and helpers for Ismatec Reglo ICC peristaltic pump.
 
 Distributed under the GNU General Public License v3
 Copyright (C) 2022 NuMat Technologies
 """
+from enum import Enum
 import logging
 import select
 import socket
@@ -22,87 +23,79 @@ class Communicator(threading.Thread):
     It handles the communication via direct serial or through a serial
     server, and keeps track of the messy mix of synchronous (command)
     and asynchronous (status) communication.
+
+    This communicator uses a threaded queue to provide non-blocking
+    serial communication. TODO explore async serial development.
     """
 
-    def __init__(self, address=None, baudrate=9600, data_bits=8, stop_bits=1,
-                 parity='N', timeout=.05):
-        """Initialize the serial link and create queues for commands and responses."""
+    def __init__(self):
+        """Create queues for commands and responses."""
         super(Communicator, self).__init__()
         self._stop_event = threading.Event()
-
-        # internal request and response queues
-        self.req_q = Queue()
-        self.res_q = Queue()
-
-        # dictionary of channel running status
-        self.running = {}
-
-        # parse options
-        self.address = address
-        self.serial_details = {'baudrate': baudrate,
-                               'bytesize': data_bits,
-                               'stopbits': stop_bits,
-                               'parity': parity,
-                               'timeout': timeout}
-
-        # initialize communication
-        self.init()
-
-    def set_running_status(self, status, channel):
-        """Manually set running status."""
-        if type(channel) == list or type(channel) == tuple:
-            logger.debug(f'manually setting running status {status} on channels {channel}')
-            for ch in channel:
-                self.running[ch] = status
-        elif channel == 0:
-            logger.debug(f'manually setting running status {status} on all channels (found %s)' %
-                         list(self.running.keys()))
-            for ch in list(self.running.keys()):
-                self.running[ch] = status
-        else:
-            logger.debug(f'manually setting running status {status} on channel {channel}')
-            self.running[channel] = status
+        self.requests : Queue = Queue()
+        self.responses : Queue = Queue()
 
     def run(self):
         """Run continuously until threading.Event fires."""
         while not self._stop_event.is_set():
             self.loop()
         self.close()
+        self.join()
 
-    def command(self, cmd):
-        """Place a command in the request queue and return the response."""
-        logger.debug(f"writing command '{cmd}' to {self.address}")
-        self.req_q.put(cmd)
-        if len(cmd) > 1 and cmd[-1] in ['H']:
-            time.sleep(0.5)
-        result = self.res_q.get()
-        if result == '*':
-            return True
-        else:
-            logger.debug(f'WARNING: command {cmd} returned {result}')
-            return False
+    def loop(self):
+        """Process a queued request. Run in a non-blocking loop."""
+        if self.requests.qsize():
+            # disable asynchronous communication
+            self.write('1xE0')
+            self.read(1)
+            # empty the ingoing buffer
+            flush = self.read(100)
+            if flush:
+                logger.debug(f'flushed garbage before query: "{flush}"')
+            # write command and get result
+            cmd = self.requests.get()
+            self.write(cmd)
+            res = self.readline()
+            self.responses.put(res)
+            # enable asynchronous communication again
+            self.write('1xE1')
+            self.read(1)
+        # check to see if device is running
+        line = self.readline()
+        if line:
+            if line[:2] == '^U':
+                ch = int(line[2])
+                self.running[ch] = True
+            elif line[:2] == '^X':
+                ch = int(line[2])
+                self.running[ch] = False
 
-    def query(self, cmd):
+    def query(self, request):
         """Place a query in the request queue and return the response."""
-        logger.debug(f"writing query '{cmd}' to {self.address}")
-        self.req_q.put(cmd)
-        result = self.res_q.get().strip()
-        logger.debug(f"got response '{result}'")
-        return result
+        self.requests.put(request)
+        # H requests change device flow, needing a longer timeout
+        if request.endswith('H'):
+            time.sleep(0.5)
+        return self.responses.get()
 
     @abstractmethod
-    def init(self):
-        """Override in subclass."""
+    def write(self, message):
+        """Write a message to the device."""
         pass
 
     @abstractmethod
-    def loop(self):
-        """Override in subclass."""
+    def read(self, length):
+        """Read a fixed number of bytes from the device."""
+        pass
+
+    @abstractmethod
+    def readline(self):
+        """Read until a LF terminator."""
         pass
 
     @abstractmethod
     def close(self):
-        """Override in subclass."""
+        """Close the connection."""
         pass
 
     def join(self, timeout=None):
@@ -116,39 +109,28 @@ class Communicator(threading.Thread):
 class SerialCommunicator(Communicator):
     """Communicator using a directly-connected RS232 serial device."""
 
-    def init(self):
-        """Initialize serial port."""
-        assert type(self.address) == str
-        self.ser = serial.Serial(self.address, **self.serial_details)
+    def __init__(self, address, timeout=.05):
+        """Initialize the serial link and create queues for commands and responses."""
+        super(SerialCommunicator, self).__init__()
+        self.ser = serial.Serial(
+            address,
+            baudrate=9600,
+            bytesize=8,
+            parity='N',
+            stopbits=1,
+        )
 
-    def loop(self):
-        """Do the repetitive work."""
-        # deal with commands and queries found in the request queue
-        if self.req_q.qsize():
-            # disable asynchronous communication
-            self.command(b'1xE0\r')
-            self.ser.read(1)
-            # empty the ingoing buffer
-            flush = self.ser.read(100)
-            if flush:
-                logger.debug(f'flushed garbage before query: "{flush!r}"')
-            # write command and get result
-            cmd = self.req_q.get()
-            self.command(cmd.encode() + b'\r')
-            res = self.ser.readline().strip()
-            self.res_q.put(res)
-            # enable asynchronous communication again
-            self.command(b'1xE1\r')
-            self.ser.read(1)
-        line = self.ser.readline()
-        if len(line):
-            # check for running message
-            if line[:2] == '^U':
-                ch = int(line[2])
-                self.running[ch] = True
-            elif line[:2] == '^X':
-                ch = int(line[2])
-                self.running[ch] = False
+    def write(self, message : str):
+        """Write a message to the device."""
+        self.ser.write(message.encode() + b'\r')
+
+    def read(self, length : int):
+        """Read a fixed number of bytes from the device."""
+        return self.ser.read(length)
+
+    def readline(self):
+        """Read until a LF terminator."""
+        self.ser.readline().strip()
 
     def close(self):
         """Release resources."""
@@ -158,64 +140,37 @@ class SerialCommunicator(Communicator):
 class SocketCommunicator(Communicator):
     """Communicator using a TCP/IP<=>serial gateway."""
 
-    def init(self):
+    def __init__(self, address, timeout=.1):
         """Initialize socket."""
-        assert type(self.address) == tuple
+        assert address.startswith('tcp://')
+        super(SocketCommunicator, self).__init__()
+        self.timeout = timeout
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect(self.address)
+        self.socket.connect(address)
 
-    def timeout_recv(self, size):
-        """Receive <size> characters from the socket, with a timeout."""
-        ready = select.select([self.socket], [], [], self.serial_details['timeout'])
+    def write(self, message : str):
+        """Write a message to the device."""
+        self.socket.send(message.encode() + b'\r')
+
+    def read(self, length : int):
+        """Read a fixed number of bytes from the device."""
+        ready = select.select([self.socket], [], [], self.timeout)
         if ready[0]:
-            # decode from bytes to str (default ASCII)
-            return self.socket.recv(size).decode()
+            return self.socket.recv(length).decode()
         return ''
 
     def readline(self):
-        r"""Read serial characters continuously until \r\n or *."""
+        """Read until a LF terminator."""
         msg = ''
         t0 = time.time()
         while True:
-            char = self.timeout_recv(1)
+            char = self.read(1)
             msg += char
-            if msg.endswith('\r\n') or msg.endswith('*'):
+            is_complete = char == '\n'
+            is_timed_out = time.time() - t0 > self.timeout
+            if is_complete or is_timed_out:
                 break
-            if time.time() - t0 > self.serial_details['timeout']:
-                break
-        return msg
-
-    def loop(self):
-        """Do the repetitive work."""
-        # deal with commands and queries found in the request queue
-        if self.req_q.qsize():
-            # disable asynchronous communication
-            self.socket.send(b'1xE0\r')
-            self.timeout_recv(1)
-            # empty the ingoing buffer
-            flush = self.timeout_recv(100)
-            if flush:
-                logger.debug(f'flushed garbage before query: "{flush}"')
-            # write command and get result
-            cmd = self.req_q.get()
-            self.socket.send(cmd.encode() + b'\r')
-            res = self.readline().strip()
-            self.res_q.put(res)
-            # enable asynchronous communication again
-            self.socket.send(b'1xE1\r')
-            self.timeout_recv(1)
-        line = self.readline()
-        if line:
-            # check for running message
-            try:
-                if line[:2] == '^U':
-                    ch = int(line[2])
-                    self.running[ch] = True
-                elif line[:2] == '^X':
-                    ch = int(line[2])
-                    self.running[ch] = False
-            except IndexError:
-                logger.debug(f'received message: "{line}"')
+        return msg.strip()
 
     def close(self):
         """Release resources."""
@@ -223,96 +178,77 @@ class SocketCommunicator(Communicator):
         self.socket.close()
 
 
-class Protocol:
-    """Convert to various (dumb) datatypes used for the protocol."""
+class Mode(Enum):
+    """Possible operating modes."""
 
-    requests = {
-        'pump version': '1#',
-        'protocol version': '1x!',
-        'set flow rate': '{channel}f{flow_v2}',
-        'get flow rate': '{channel}f',
-        'get mode': '{channel}xM',
-        'set mode': ...
+    RPM = 'L'
+    FLOWRATE = 'M'
+    VOL_AT_RATE = 'O'
+    VOL_OVER_TIME = 'G'
+    VOL_PAUSE = 'Q'
+    TIME = 'N'
+    TIME_PAUSE = 'P'
 
+
+class Setpoint(Enum):
+    """Possible setpoint types."""
+
+    RPM = '0'
+    FLOWRATE = '1'
+
+
+class Rotation(Enum):
+    """Possible rotation directions."""
+
+    CLOCKWISE = 'J'
+    COUNTERCLOCKWISE = 'K'
+
+
+def pack_time2(number, units='s'):
+    """Convert number to Ismatec Reglo ICC 'time type 2'.
+
+    8 digits, left padded, 0 to 35964000 in units of 0.1s (0 to 999 hr)
+    """
+    unit_options = {
+        's': 10,
+        'm': 600,
+        'h': 36000,
     }
-    responses = {
-        'setpoint': {
-            '0': 'rpm',
-            '1': 'flow rate',
-        },
-        'rotation': {
-            'J': 'clockwise',
-            'K': 'counterclockwise',
-        },
-        'mode': {
-            'G': 'vol over time',
-            'L': 'rpm',
-            'M': 'flow rate',
-            'N': 'time',
-            'O': 'vol at rate',
-            'P': 'time pause',
-            'Q': 'vol pause',
-        },
-    }
-    tubing = [
-        0.13, 0.19, 0.25, 0.38, 0.44, 0.51, 0.57, 0.64, 0.76, 0.89, 0.95, 1.02, 1.09,
-        1.14, 1.22, 1.30, 1.43, 1.52, 1.65, 1.75, 1.85, 2.06, 2.29, 2.54, 2.79, 3.17
-    ]
+    number = int(number * unit_options[units])
+    return str(min(number, 35964000)).replace('.', '').zfill(8)
 
-    def _time1(self, number, units='s'):
-        """Convert number to 'time type 1'.
 
-        1-8 digits, 0 to 35964000 in units of 0.1s (0 to 999 hr)
-        """
-        unit_options = {
-            's': 10,
-            'm': 600,
-            'h': 36000,
-        }
-        number = int(number * unit_options[units])
-        return str(min(number, 35964000)).replace('.', '')
+def pack_volume2(number):
+    """Convert number to Ismatec Reglo ICC 'volume type 2'.
 
-    def _time2(self, number, units='s'):
-        """Convert number to 'time type 2'.
+    This is undocumented. It appears to be 'volume type 1' without
+    the E, and can be mL or mL/min depending on use case.
 
-        This is an 8-digit left-padded version of `_time1`.
-        """
-        return self._time1(number, units).zfill(8)
+    mmmmse — Represents the scientific notation of m.mmm x 10se.
+    For example, 1.200 x 10-2 is represented with 1200-2. Note
+    that the decimal point is inferred after the first character.
+    """
+    s = f'{abs(number):.3e}'
+    return f'{s[0]}{s[2:5]}{s[-3]}{s[-1]}'
 
-    def _volume1(self, number):
-        """Convert number to 'volume type 1'.
 
-        mmmmEse — Represents the scientific notation of m.mmm x 10se.
-        For example, 1.200 x 10-2 is represented with 1200E-2. Note
-        that the decimal point is inferred after the first character.
-        """
-        s = f'{abs(number):.3e}'
-        return f'{s[0]}{s[2:5]}E{s[-3]}{s[-1]}'
+def pack_discrete2(number):
+    """Convert number to Ismatec Reglo ICC 'discrete type 2'.
 
-    def _volume2(self, number):
-        """Convert number to 'volume type 2'.
+    Four characters representing a discrete integer value in base
+    10. The value is right-justified. Unused digits to the left are
+    zeros.
+    """
+    s = str(number).strip('0')
+    whole, decimals = s.split('.')
+    return '%04d' % int(whole + decimals)
 
-        This is undocumented. It appears to be 'volume type 1' without
-        the E, and can be mL or mL/min depending on use case.
-        """
-        return self._volume1(number).replace('E', '')
 
-    def _discrete2(self, number):
-        """Convert number to 'discrete type 2'.
+def pack_discrete3(number):
+    """Convert number to Ismatec Reglo ICC 'discrete type 3'.
 
-        Four characters representing a discrete integer value in base
-        10. The value is right-justified. Unused digits to the left are
-        zeros.
-        """
-        s = str(number).strip('0')
-        whole, decimals = s.split('.')
-        return '%04d' % int(whole + decimals)
-
-    def _discrete3(self, number):
-        """Convert number to 'discrete type 3'.
-
-        Six characters in base 10. The value is right-justified.
-        Unused digits to the left are zeros.
-        """
-        assert 0 <= number < 1_000_000
-        return str(number).zfill(6)
+    Six characters in base 10. The value is right-justified.
+    Unused digits to the left are zeros.
+    """
+    assert 0 <= number < 1_000_000
+    return str(number).zfill(6)

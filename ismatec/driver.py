@@ -5,13 +5,24 @@ Copyright (C) 2022 NuMat Technologies
 """
 import logging
 
-from .util import (Communicator, Protocol, SerialCommunicator,
-                   SocketCommunicator)
+from .util import (
+    Communicator,
+    SerialCommunicator,
+    SocketCommunicator,
+    Mode,
+    Setpoint,
+    Rotation,
+    tubing,
+    pack_time2,
+    pack_volume2,
+    pack_discrete2,
+    pack_discrete3,
+)
 
 logger = logging.getLogger('ismatec')
 
 
-class Pump(Protocol):
+class Pump():
     """Driver for a single Ismatec Reglo ICC peristaltic pump.
 
     The driver supports both serial and ethernet communication.
@@ -40,15 +51,16 @@ class Pump(Protocol):
             self.hw = SerialCommunicator(address=address, **kwargs)
 
         # Enable independent channel addressing
-        self.hw.command('1~1')
+        self.hw.query('1~1')
         # Disable asynchronous messages
-        self.hw.command('1xE0')
+        self.hw.query('1xE0')
         # Get channel indices for request validation
         self.channels = self.get_channels()
         # Set initial running states and manually update cache
         for channel in self.channels:
-            self.hw.command(f'{channel}I')
-        self.hw.set_running_status(False, self.channels)
+            self.hw.query(f'{channel}I')
+        self.running = {}
+        self._set_running_status(False, self.channels)
 
     async def __aenter__(self):
         """Asynchronously connect with the context manager."""
@@ -72,8 +84,8 @@ class Pump(Protocol):
     async def set_flow_rate(self, channel: int, flowrate):
         """Set the flow rate of the specified channel."""
         assert channel in self.channels
-        flow = self._volume2(flowrate)  # TODO Clearer explanation of datatypes
-        self.hw.command(f'{channel}f{flow}')
+        flow = pack_volume2(flowrate)  # TODO Clearer explanation of datatypes
+        self.hw.query(f'{channel}f{flow}')
 
     async def get_flow_rate(self, channel: int) -> float:
         """Get the flow rate of the specified channel."""
@@ -90,12 +102,12 @@ class Pump(Protocol):
         """Get the mode of the specified channel."""
         assert channel in self.channels
         reply = self.hw.query(f'{channel}xM')
-        return Protocol.Mode(reply).name
+        return Mode(reply).name
 
-    async def set_mode(self, channel: int, mode: Protocol.Mode):
+    async def set_mode(self, channel: int, mode: Mode):
         """Set the mode of the specified channel."""
         assert channel in self.channels
-        return self.hw.command(f'{channel}{mode.value}')
+        return self.hw.query(f'{channel}{mode.value}')
 
     def get_channels(self) -> list:
         """Get a list of available channel options.
@@ -116,7 +128,7 @@ class Pump(Protocol):
 
     async def set_tubing_inner_diameter(self, channel: int, diam):
         """Set the peristaltic tubing inner diameter (mm) of a channel."""
-        return self.hw.command(f'{channel}+{self._discrete2(diam)}')
+        return self.hw.query(f'{channel}+{pack_discrete2(diam)}')
 
     async def get_speed(self, channel) -> float:
         """Get the speed (RPM) of a channel."""
@@ -126,7 +138,7 @@ class Pump(Protocol):
         """Set the speed (RPM) of a channel."""
         assert channel in self.channels
         rpm = int(round(rpm * 100, 2))
-        return self.hw.command(f'{channel}S{self._discrete3(rpm)}')
+        return self.hw.query(f'{channel}S{pack_discrete3(rpm)}')
 
     async def get_runtime(self, channel: int) -> float:
         """Get the runtime (minutes) of a channel."""
@@ -136,8 +148,8 @@ class Pump(Protocol):
     async def set_runtime(self, channel: int, runtime: float) -> bool:
         """Set the runtime (minutes) of a channel."""
         assert channel in self.channels
-        packed_time = self._time2(runtime, units='m')
-        return self.hw.command(f'{channel}xT{packed_time}')
+        packed_time = pack_time2(runtime, units='m')
+        return self.hw.query(f'{channel}xT{packed_time}') == '*'
 
     async def get_volume_setpoint(self, channel) -> float:
         """Get the volume setpoint (mL) of a channel."""
@@ -146,27 +158,27 @@ class Pump(Protocol):
     async def set_volume_setpoint(self, channel, vol: float) -> bool:
         """Set the volume (mL) of a channel."""
         assert channel in self.channels
-        return self.hw.command(f'{channel}v{self._volume2(vol)}')
+        return self.hw.query(f'{channel}v{pack_volume2(vol)}')
 
-    async def get_rotation(self, channel: int) -> Protocol.Rotation:  # Don't like this
+    async def get_rotation(self, channel: int) -> Rotation:  # Don't like this
         """Return the rotation direction on the specified channel."""
         assert channel in self.channels
         rotation_code = self.hw.query(f'{channel}xD')
-        return Protocol.Rotation(rotation_code)
+        return Rotation(rotation_code)
 
-    async def set_rotation(self, channel: int, rotation: Protocol.Rotation):
+    async def set_rotation(self, channel: int, rotation: Rotation):
         """Set the rotation direction on the specified channel."""
-        return self.hw.command(f'{channel}{rotation.value}')
+        return self.hw.query(f'{channel}{rotation.value}')
 
-    async def get_setpoint_type(self, channel: int) -> Protocol.Setpoint:
+    async def get_setpoint_type(self, channel: int) -> Setpoint:
         """Return the setpoint type (RPM or flowrate) on the specified channel."""
         assert channel in self.channels
         type_code = self.hw.query(f'{channel}xf')
-        return Protocol.Setpoint(type_code)
+        return Setpoint(type_code)
 
-    async def set_setpoint_type(self, channel: int, type: Protocol.Setpoint):
+    async def set_setpoint_type(self, channel: int, type: Setpoint):
         """Set the setpoint type (RPM or flow rate) on the specified channel."""
-        return self.hw.command(f'{channel}xf{type.value}')
+        return self.hw.query(f'{channel}xf{type.value}')
 
     async def get_max_flow_rate(self, channel: int, calibrated=False):
         """Get the max flow rate (mL/min) achievable with current settings."""
@@ -189,7 +201,7 @@ class Pump(Protocol):
     async def set_channel_addressing(self, on) -> bool:
         """Enable or disable channel addressing."""
         on = 1 if on else 0
-        return bool(self.hw.command(f'1~{on}'))
+        return bool(self.hw.query(f'1~{on}'))
 
     async def has_event_messaging(self) -> bool:
         """Return status of event messaging."""
@@ -198,31 +210,31 @@ class Pump(Protocol):
     async def set_event_messaging(self, on) -> bool:
         """Enable or disable event messaging."""
         on = 1 if on else 0
-        return bool(self.hw.command(f'1xE{on}'))
+        return bool(self.hw.query(f'1xE{on}'))
 
     async def reset_default_settings(self) -> bool:
         """Reset all user configurable data to default values."""
-        return bool(self.hw.command('10'))  # '1' is a pump address, not channel
+        return bool(self.hw.query('10'))  # '1' is a pump address, not channel
 
     async def continuous_flow(self, channel: int, rate: float):
         """Start continuous flow (mL/min) on specified channel."""
         assert channel in self.channels
         maxrate = float(self.hw.query(f'{channel}?').split(' ')[0])
         # flow rate mode
-        self.hw.command(f'{channel}M')
+        self.hw.query(f'{channel}M')
         # set flow direction.  K=clockwise, J=counterclockwise
         if rate < 0:
-            self.hw.command(f'{channel}K')
+            self.hw.query(f'{channel}K')
         else:
-            self.hw.command(f'{channel}J')
+            self.hw.query(f'{channel}J')
         # set flow rate
         if abs(rate) > maxrate:
             rate = rate / abs(rate) * maxrate
-        self.hw.query(f'{channel}f{self._volume2(rate)}')
+        self.hw.query(f'{channel}f{pack_volume2(rate)}')
         # make sure the running status gets set from the start
-        self.hw.set_running_status(True, channel)
+        self._set_running_status(True, channel)
         # start
-        self.hw.command(f'{channel}H')
+        self.hw.query(f'{channel}H')
 
     async def dispense_vol_at_rate(self, channel: int, vol, rate, units='ml/min'):
         """Dispense vol (ml) at rate on specified channel.
@@ -243,79 +255,79 @@ class Pump(Protocol):
             maxrate = float(self.hw.query(f'{channel}?').split(' ')[0])
         assert channel in self.channels or channel == 0
         # volume at rate mode
-        self.hw.command(f'{channel}O')
+        self.hw.query(f'{channel}O')
         # make volume positive
         if vol < 0:
             vol *= -1
             rate *= -1
         # set flow direction
         if rate < 0:
-            self.hw.command(f'{channel}K')
+            self.hw.query(f'{channel}K')
         else:
-            self.hw.command(f'{channel}J')
+            self.hw.query(f'{channel}J')
         # set flow rate
         if abs(rate) > maxrate:
             rate = rate / abs(rate) * maxrate
-        self.hw.query(f'{channel}f{self._volume2(rate)}')
+        self.hw.query(f'{channel}f{pack_volume2(rate)}')
         if units == 'rpm':
-            self.hw.command(f'{channel}S{self._discrete3(rate * 100)}')
+            self.hw.query(f'{channel}S{pack_discrete3(rate * 100)}')
         else:
-            self.hw.query(f'{channel}f{self._volume2(rate)}')
+            self.hw.query(f'{channel}f{pack_volume2(rate)}')
         # set volume
-        self.hw.query(f'{channel}v{self._volume2(vol)}')
+        self.hw.query(f'{channel}v{pack_volume2(vol)}')
         # make sure the running status gets set from the start to avoid later Sardana troubles
-        self.hw.set_running_status(True, channel)
+        self._set_running_status(True, channel)
         # start
-        self.hw.command(f'{channel}H')
+        self.hw.query(f'{channel}H')
 
     async def dispense_vol_over_time(self, channel: int, vol, time):
         """Dispense vol (ml) over time (min) on specified channel."""
         assert channel in self.channels
         # volume over time mode
-        self.hw.command(f'{channel}G')
+        self.hw.query(f'{channel}G')
         # set flow direction
         if vol < 0:
-            self.hw.command(f'{channel}K')
+            self.hw.query(f'{channel}K')
             vol *= -1
         else:
-            self.hw.command(f'{channel}J')
+            self.hw.query(f'{channel}J')
         # set volume
-        self.hw.query(f'{channel}v{self._volume2(vol)}')
+        self.hw.query(f'{channel}v{pack_volume2(vol)}')
         # set time.  Note: if the time is too short, the pump will not start.
-        self.hw.query(f"{channel}xT{self._time2(time, units='m')}")
+        self.hw.query(f"{channel}xT{pack_time2(time, units='m')}")
         # make sure the running status gets set from the start to avoid later Sardana troubles
-        self.hw.set_running_status(True, channel)
+        self._set_running_status(True, channel)
         # start
-        self.hw.command(f'{channel}H')
+        self.hw.query(f'{channel}H')
 
     async def dispense_flow_over_time(self, channel: int, rate, time, units='ml/min'):
         """Dispense at a set flowrate over time (min) on specified channel."""
         assert channel in self.channels
         # set flow direction
         if rate < 0:
-            self.hw.command(f'{channel}K')
+            self.hw.query(f'{channel}K')
             rate *= -1
         else:
-            self.hw.command(f'{channel}J')
+            self.hw.query(f'{channel}J')
         # set to flowrate mode first, otherwise Time mode uses RPMs
         self.hw.query(f'{channel}M')
         # Set to flowrate over time ("Time") mode
-        self.hw.command(f'{channel}N')
+        self.hw.query(f'{channel}N')
         # set flowrate
-        self.hw.query(f'{channel}f{self._volume2(rate)}')
+        self.hw.query(f'{channel}f{pack_volume2(rate)}')
         # set time.  Note: if the time is too short, the pump will not start.
-        self.hw.query(f"{channel}xT{self._time2(time, units='m')}")
+        self.hw.query(f"{channel}xT{pack_time2(time, units='m')}")
         # make sure the running status gets set from the start
-        self.hw.set_running_status(True, channel)
+        self._set_running_status(True, channel)
         # start
-        self.hw.command(f'{channel}H')
+        self.hw.query(f'{channel}H')
 
     async def start(self, channel: int):
         """Start any pumping operation on specified channel."""
         assert channel in self.channels
         # doing this misses the asynchronous start signal, so set manually
-        result = self.hw.command(f'{channel}H')
-        self.hw.set_running_status(result, channel)
+        result = self.hw.query(f'{channel}H')
+        self._set_running_status(result, channel)
         return result
 
     async def stop(self, channel: int):
@@ -323,6 +335,25 @@ class Pump(Protocol):
         # here we can stop all channels by specifying 0
         assert channel in self.channels
         # doing this misses the asynchronous stop signal, so set manually
-        result = self.hw.command(f'{channel}I')
-        self.hw.set_running_status(not result, channel)
+        result = self.hw.query(f'{channel}I')
+        self._set_running_status(not result, channel)
         return result
+
+    def _set_running_status(self, status, channel):
+        """Manually set running status.
+
+        TODO more doc. Don't immediately understand the different input
+        types.
+        """
+        if type(channel) == list or type(channel) == tuple:
+            logger.debug(f'manually setting running status {status} on channels {channel}')
+            for ch in channel:
+                self.running[ch] = status
+        elif channel == 0:
+            logger.debug(f'manually setting running status {status} on all channels (found %s)' %
+                            list(self.running.keys()))
+            for ch in list(self.running.keys()):
+                self.running[ch] = status
+        else:
+            logger.debug(f'manually setting running status {status} on channel {channel}')
+            self.running[channel] = status
