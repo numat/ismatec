@@ -59,21 +59,21 @@ async def test_start_stop_roundtrip():
         await device.set_mode(1, Protocol.Mode.VOL_AT_RATE)
         await device.set_volume_setpoint(1, 10)
         await device.set_setpoint_type(1, Protocol.Setpoint.FLOWRATE)
-        await device.set_flowrate(1, flowrate=0.1)
+        await device.set_flow_rate(1, flowrate=0.1)
         await device.set_mode(2, Protocol.Mode.FLOWRATE)
-        await device.set_flowrate(2, flowrate=0.1)
+        await device.set_flow_rate(2, flowrate=0.1)
 
         await device.start(1)
-        assert await device.get_running(1) is True
-        assert await device.get_running(2) is False
+        assert await device.is_running(1) is True
+        assert await device.is_running(2) is False
         await device.start(2)
-        assert await device.get_running(2) is True
+        assert await device.is_running(2) is True
 
         await device.stop(1)
-        assert await device.get_running(1) is False
-        assert await device.get_running(2) is True
+        assert await device.is_running(1) is False
+        assert await device.is_running(2) is True
         await device.stop(2)
-        assert await device.get_running(2) is False
+        assert await device.is_running(2) is False
 
 
 @pytest.mark.skip
@@ -84,12 +84,12 @@ async def test_pause_pumping():
         await device.set_mode(channel, Protocol.Mode.RPM)
         await device.start(channel)
         await device.pause(channel)  # Pause = cancel in RPM mode
-        assert await device.get_running(1) is False
+        assert await device.is_running(1) is False
         await device.set_mode(channel, Protocol.Mode.VOL_AT_RATE)
         await device.start(channel)
         await device.pause(channel)
         await device.pause(channel)  # unpause
-        assert await device.get_running(channel)
+        assert await device.is_running(channel)
 
 
 async def test_rotation_roundtrip():
@@ -112,13 +112,13 @@ async def test_cannot_run_responses():
         assert await device.get_run_failure_reason(1) == ('C', 0.0)  # 0 cycles
 
         await device.set_mode(2, Protocol.Mode.FLOWRATE)
-        await device.set_flowrate(2, flowrate=0)
+        await device.set_flow_rate(2, flowrate=0)
         assert await device.start(2) is False
         assert await device.get_run_failure_reason(2) == ('R', 0.1386)  # 0 flowrate
 
         await device.set_mode(3, Protocol.Mode.VOL_AT_RATE)
         await device.set_setpoint_type(3, Protocol.Setpoint.FLOWRATE)
-        await device.set_flowrate(3, flowrate=0.01)
+        await device.set_flow_rate(3, flowrate=0.01)
         await device.set_volume_setpoint(channel=3, vol=9999999)
         assert await device.start(3) is False
         assert await device.get_run_failure_reason(3) == ('V', 8308.0)  # max volume
@@ -155,15 +155,15 @@ async def test_speed_roundtrip():
         assert sp_2 == await device.get_speed(2)
 
 
-async def test_flowrate_roundtrip():
+async def test_flow_rate_roundtrip():
     """Confirm that setting/getting flowrates works."""
     async with Pump('fakeip') as device:
         flow_sp_1 = round(uniform(0.01, 0.14), 3)
         flow_sp_2 = round(uniform(0.01, 0.14), 3)
-        await device.set_flowrate(1, flowrate=flow_sp_1)
-        await device.set_flowrate(2, flowrate=flow_sp_2)
-        assert flow_sp_1 == await device.get_flowrate(1)
-        assert flow_sp_2 == await device.get_flowrate(2)
+        await device.set_flow_rate(1, flowrate=flow_sp_1)
+        await device.set_flow_rate(2, flowrate=flow_sp_2)
+        assert flow_sp_1 == await device.get_flow_rate(1)
+        assert flow_sp_2 == await device.get_flow_rate(2)
 
 
 async def test_volume_setpoint_roundtrip():
@@ -212,14 +212,14 @@ async def test_cycle_count_roundtrip():
         assert sp_2 == await device.get_cycles(2)
 
 
-async def test_max_flowrate():
+async def test_max_flow_rate():
     """Confirm getting the (computed) maxmimum flowrates works."""
     async with Pump('fakeip') as device:
         await device.reset_default_settings()
-        assert '0.138 ml/min' == await device.get_max_flowrate(1, calibrated=False)
+        assert '0.138 ml/min' == await device.get_max_flow_rate(1, calibrated=False)
         await device.set_tubing_inner_diameter(1, diam=0.19)
-        assert '0.281 ml/min' == await device.get_max_flowrate(1, calibrated=False)
-        assert '0.281 ml/min' == await device.get_max_flowrate(1, calibrated=True)
+        assert '0.281 ml/min' == await device.get_max_flow_rate(1, calibrated=False)
+        assert '0.281 ml/min' == await device.get_max_flow_rate(1, calibrated=True)
 
 
 @pytest.mark.skip

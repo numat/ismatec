@@ -65,19 +65,19 @@ class Pump(Protocol):
         """Return serial protocol version."""
         return int(self.hw.query('1x!'))
 
-    async def set_flowrate(self, channel: int, flowrate):
-        """Set the flowrate of the specified channel."""
+    async def set_flow_rate(self, channel: int, flowrate):
+        """Set the flow rate of the specified channel."""
         assert channel in self.channels
         flow = self._volume2(flowrate)
         self.hw.command(f'{channel}f{flow}')
 
-    async def get_flowrate(self, channel: int) -> float:
+    async def get_flow_rate(self, channel: int) -> float:
         """Get the flow rate of the specified channel."""
         assert channel in self.channels
         reply = self.hw.query(f'{channel}f')
         return float(reply) / 1000 if reply else 0
 
-    async def get_running(self, channel: int) -> bool:
+    async def is_running(self, channel: int) -> bool:
         """Return if the specified channel is running."""
         assert channel in self.channels
         # self.hw.running[channel] = self.hw.query(f'{channel}E') == '+'
@@ -132,7 +132,8 @@ class Pump(Protocol):
     async def set_runtime(self, channel: int, runtime: float) -> bool:
         """Set the runtime (minutes) of a channel."""
         assert channel in self.channels
-        return self.hw.command(f'{channel}xT{self._time2(runtime, units="m")}')
+        packed_time = self._time2(runtime, units='m')
+        return self.hw.command(f'{channel}xT{packed_time}')
 
     async def get_volume_setpoint(self, channel) -> float:
         """Get the volume setpoint (mL) of a channel."""
@@ -163,7 +164,7 @@ class Pump(Protocol):
         """Set the setpoint type (RPM or flow rate) on the specified channel."""
         return self.hw.command(f'{channel}xf{type.value}')
 
-    async def get_max_flowrate(self, channel: int, calibrated=False):
+    async def get_max_flow_rate(self, channel: int, calibrated=False):
         """Get the max flow rate (mL/min) achievable with current settings."""
         if calibrated:
             return self.hw.query(f'{channel}!')
