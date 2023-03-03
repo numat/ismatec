@@ -5,7 +5,8 @@ Copyright (C) 2022 NuMat Technologies
 """
 import logging
 
-from .util import Protocol, SerialCommunicator, SocketCommunicator
+from .util import (Communicator, Protocol, SerialCommunicator,
+                   SocketCommunicator)
 
 logger = logging.getLogger('ismatec')
 
@@ -34,7 +35,7 @@ class Pump(Protocol):
         """
         if address.startswith('tcp://'):
             ip, port = address[6:].split(':')
-            self.hw = SocketCommunicator(address=(ip, int(port)), **kwargs)
+            self.hw: Communicator = SocketCommunicator(address=(ip, int(port)), **kwargs)
         else:
             self.hw = SerialCommunicator(address=address, **kwargs)
 

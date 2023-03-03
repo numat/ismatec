@@ -304,8 +304,9 @@ class Protocol:
         10. The value is right-justified. Unused digits to the left are
         zeros.
         """
-        assert 0 <= number < 10_000
-        return str(number).zfill(4)
+        s = str(number).strip('0')
+        whole, decimals = s.split('.')
+        return '%04d' % int(whole + decimals)
 
     def _discrete3(self, number):
         """Convert number to 'discrete type 3'.
