@@ -227,91 +227,107 @@ class SocketCommunicator(Communicator):
         self.socket.close()
 
 
-class Protocol:
-    """Convert to various (dumb) datatypes used for the protocol."""
+class Mode(Enum):
+    """Possible operating modes."""
 
-    def _time1(self, number, units='s'):
-        """Convert number to 'time type 1'.
+    RPM = 'L'
+    FLOWRATE = 'M'
+    VOL_AT_RATE = 'O'
+    VOL_OVER_TIME = 'G'
+    VOL_PAUSE = 'Q'
+    TIME = 'N'
+    TIME_PAUSE = 'P'
 
-        1-8 digits, 0 to 35964000 in units of 0.1s (0 to 999 hr)
-        """
-        unit_options = {
-            's': 10,
-            'm': 600,
-            'h': 36000,
-        }
-        number = int(number * unit_options[units])
-        return str(min(number, 35964000)).replace('.', '')
 
-    def _time2(self, number, units='s'):
-        """Convert number to 'time type 2'.
+class Setpoint(Enum):
+    """Possible setpoint types."""
 
-        This is an 8-digit left-padded version of `_time1`.
-        """
-        return self._time1(number, units).zfill(8)
+    RPM = '0'
+    FLOWRATE = '1'
 
-    def _volume1(self, number):
-        """Convert number to 'volume type 1'.
 
-        mmmmEse — Represents the scientific notation of m.mmm x 10se.
-        For example, 1.200 x 10-2 is represented with 1200E-2. Note
-        that the decimal point is inferred after the first character.
-        """
-        s = f'{abs(number):.3e}'
-        return f'{s[0]}{s[2:5]}E{s[-3]}{s[-1]}'
+class Rotation(Enum):
+    """Possible rotation directions."""
 
-    def _volume2(self, number):
-        """Convert number to 'volume type 2'.
+    CLOCKWISE = 'J'
+    COUNTERCLOCKWISE = 'K'
 
-        This is undocumented. It appears to be 'volume type 1' without
-        the E, and can be mL or mL/min depending on use case.
-        """
-        return self._volume1(number).replace('E', '')
 
-    def _discrete2(self, number):
-        """Convert number to 'discrete type 2'.
+def pack_time1(number, units='s') -> str:
+    """Convert number to Ismatec Reglo ICC 'time type 1'.
 
-        Four characters representing a discrete integer value in base
-        10. The value is right-justified. Unused digits to the left are
-        zeros.
-        """
-        s = str(number).strip('0')
-        whole, decimals = s.split('.')
-        return '%04d' % int(whole + decimals)
+    1-8 digits, 0 to 35964000 in units of 0.1s (0 to 999 hr)
+    """
+    unit_options = {
+        's': 10,
+        'm': 600,
+        'h': 36000,
+    }
+    number = int(number * unit_options[units])
+    return str(min(number, 35964000)).replace('.', '')
 
-    def _discrete3(self, number):
-        """Convert number to 'discrete type 3'.
 
-        Six characters in base 10. The value is right-justified.
-        Unused digits to the left are zeros.
-        """
-        assert 0 <= number < 1_000_000
-        return str(number).zfill(6)
+def pack_time2(number, units='s') -> str:
+    """Convert number to Ismatec Reglo ICC 'time type 2'.
 
-    class Mode(Enum):
-        """Possible operating modes."""
+    8 digits, left padded, 0 to 35964000 in units of 0.1s (0 to 999 hr)
+    """
+    unit_options = {
+        's': 10,
+        'm': 600,
+        'h': 36000,
+    }
+    number = int(number * unit_options[units])
+    return str(min(number, 35964000)).replace('.', '').zfill(8)
 
-        RPM = 'L'
-        FLOWRATE = 'M'
-        VOL_AT_RATE = 'O'
-        VOL_OVER_TIME = 'G'
-        VOL_PAUSE = 'Q'
-        TIME = 'N'
-        TIME_PAUSE = 'P'
 
-    class Setpoint(Enum):
-        """Possible setpoint types."""
+def pack_volume1(number) -> str:
+    """Convert number to Ismatec Reglo ICC 'volume type 1'.
 
-        RPM = '0'
-        FLOWRATE = '1'
+    mmmmEse — Represents the scientific notation of m.mmm x 10se.
+    For example, 1.200 x 10-2 is represented with 1200E-2. Note
+    that the decimal point is inferred after the first character.
+    """
+    s = f'{abs(number):.3e}'
+    return f'{s[0]}{s[2:5]}E{s[-3]}{s[-1]}'
 
-    class Rotation(Enum):
-        """Possible rotation directions."""
 
-        CLOCKWISE = 'J'
-        COUNTERCLOCKWISE = 'K'
+def pack_volume2(number):
+    """Convert number to Ismatec Reglo ICC 'volume type 2'.
 
-    Tubing = [
-        0.13, 0.19, 0.25, 0.38, 0.44, 0.51, 0.57, 0.64, 0.76, 0.89, 0.95, 1.02, 1.09,
-        1.14, 1.22, 1.30, 1.43, 1.52, 1.65, 1.75, 1.85, 2.06, 2.29, 2.54, 2.79, 3.17
-    ]
+    This is undocumented. It appears to be 'volume type 1' without
+    the E, and can be mL or mL/min depending on use case.
+    mmmmse — Represents the scientific notation of m.mmm x 10se.
+    For example, 1.200 x 10-2 is represented with 1200-2. Note
+    that the decimal point is inferred after the first character.
+    """
+    s = f'{abs(number):.3e}'
+    return f'{s[0]}{s[2:5]}{s[-3]}{s[-1]}'
+
+
+def pack_discrete2(number) -> str:
+    """Convert number to Ismatec Reglo ICC 'discrete type 2'.
+
+    Four characters representing a discrete integer value in base
+    10. The value is right-justified. Unused digits to the left are
+    zeros.
+    """
+    s = str(number).strip('0')
+    whole, decimals = s.split('.')
+    return '%04d' % int(whole + decimals)
+
+
+def pack_discrete3(number) -> str:
+    """Convert number to Ismatec Reglo ICC 'discrete type 3'.
+
+    Six characters in base 10. The value is right-justified.
+    Unused digits to the left are zeros.
+    """
+    assert 0 <= number < 1_000_000
+    return str(number).zfill(6)
+
+
+Tubing = [
+    0.13, 0.19, 0.25, 0.38, 0.44, 0.51, 0.57, 0.64, 0.76, 0.89, 0.95, 1.02, 1.09,
+    1.14, 1.22, 1.30, 1.43, 1.52, 1.65, 1.75, 1.85, 2.06, 2.29, 2.54, 2.79, 3.17
+]
