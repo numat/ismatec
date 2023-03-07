@@ -4,25 +4,16 @@ Distributed under the GNU General Public License v3
 Copyright (C) 2022 NuMat Technologies
 """
 import logging
+from typing import Dict
 
-from .util import (
-    Communicator,
-    SerialCommunicator,
-    SocketCommunicator,
-    Mode,
-    Setpoint,
-    Rotation,
-    tubing,
-    pack_time2,
-    pack_volume2,
-    pack_discrete2,
-    pack_discrete3,
-)
+from .util import (Communicator, Mode, Rotation, SerialCommunicator, Setpoint,
+                   SocketCommunicator, pack_discrete2, pack_discrete3,
+                   pack_time2, pack_volume2)
 
 logger = logging.getLogger('ismatec')
 
 
-class Pump():
+class Pump:
     """Driver for a single Ismatec Reglo ICC peristaltic pump.
 
     The driver supports both serial and ethernet communication.
@@ -59,7 +50,7 @@ class Pump():
         # Set initial running states and manually update cache
         for channel in self.channels:
             self.hw.query(f'{channel}I')
-        self.running = {}
+        self.running: Dict[int, bool] = {}
         self._set_running_status(False, self.channels)
 
     async def __aenter__(self):
@@ -112,13 +103,13 @@ class Pump():
     def get_channels(self) -> list:
         """Get a list of available channel options.
 
-        Return None if the pump is not configured for independent channels.
+        Return [] if the pump is not configured for independent channels.
         """
         try:
             number_of_channels = int(self.hw.query('1xA'))
             return list(range(1, number_of_channels + 1))
         except ValueError:
-            return None
+            return []
 
     async def get_tubing_inner_diameter(self, channel: int) -> float:
         """Get the peristaltic tubing inner diameter (mm) of a channel."""
