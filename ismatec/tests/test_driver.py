@@ -6,7 +6,7 @@ import pytest
 
 from ismatec import command_line
 from ismatec.mock import Pump
-from ismatec.util import Protocol
+from ismatec.util import Mode, Rotation, Setpoint, Tubing
 
 
 @pytest.fixture
@@ -56,11 +56,11 @@ async def test_serial_protocol_version():
 async def test_start_stop_roundtrip():
     """Confirm starting and stopping works."""
     async with Pump('fakeip') as device:
-        await device.set_mode(1, Protocol.Mode.VOL_AT_RATE)
+        await device.set_mode(1, Mode.VOL_AT_RATE)
         await device.set_volume_setpoint(1, 10)
-        await device.set_setpoint_type(1, Protocol.Setpoint.FLOWRATE)
+        await device.set_setpoint_type(1, Setpoint.FLOWRATE)
         await device.set_flow_rate(1, flowrate=0.1)
-        await device.set_mode(2, Protocol.Mode.FLOWRATE)
+        await device.set_mode(2, Mode.FLOWRATE)
         await device.set_flow_rate(2, flowrate=0.1)
 
         await device.start(1)
@@ -81,11 +81,11 @@ async def test_pause_pumping():
     """Confirm pausing pumping works."""
     channel = choice([1, 2, 3, 4])
     async with Pump('fakeip') as device:
-        await device.set_mode(channel, Protocol.Mode.RPM)
+        await device.set_mode(channel, Mode.RPM)
         await device.start(channel)
         await device.pause(channel)  # Pause = cancel in RPM mode
         assert await device.is_running(1) is False
-        await device.set_mode(channel, Protocol.Mode.VOL_AT_RATE)
+        await device.set_mode(channel, Mode.VOL_AT_RATE)
         await device.start(channel)
         await device.pause(channel)
         await device.pause(channel)  # unpause
@@ -95,8 +95,8 @@ async def test_pause_pumping():
 async def test_rotation_roundtrip():
     """Confirm setting/getting flow direction works."""
     async with Pump('fakeip') as device:
-        rotation_1 = choice(list(Protocol.Rotation))
-        rotation_2 = choice(list(Protocol.Rotation))
+        rotation_1 = choice(list(Rotation))
+        rotation_2 = choice(list(Rotation))
         await device.set_rotation(1, rotation=rotation_1)
         await device.set_rotation(2, rotation=rotation_2)
         assert rotation_1 == await device.get_rotation(1)
@@ -107,17 +107,17 @@ async def test_cannot_run_responses():
     """Test reading the reason for a pump not running."""
     async with Pump('fakeip') as device:
         # await device.set_pump_cycle_count(channel=1, count=0)
-        await device.set_mode(1, Protocol.Mode.VOL_PAUSE)
+        await device.set_mode(1, Mode.VOL_PAUSE)
         assert await device.start(1) is False
         assert await device.get_run_failure_reason(1) == ('C', 0.0)  # 0 cycles
 
-        await device.set_mode(2, Protocol.Mode.FLOWRATE)
+        await device.set_mode(2, Mode.FLOWRATE)
         await device.set_flow_rate(2, flowrate=0)
         assert await device.start(2) is False
         assert await device.get_run_failure_reason(2) == ('R', 0.1386)  # 0 flowrate
 
-        await device.set_mode(3, Protocol.Mode.VOL_AT_RATE)
-        await device.set_setpoint_type(3, Protocol.Setpoint.FLOWRATE)
+        await device.set_mode(3, Mode.VOL_AT_RATE)
+        await device.set_setpoint_type(3, Setpoint.FLOWRATE)
         await device.set_flow_rate(3, flowrate=0.01)
         await device.set_volume_setpoint(channel=3, vol=9999999)
         assert await device.start(3) is False
@@ -125,7 +125,7 @@ async def test_cannot_run_responses():
 # Operational mode and settings
 
 
-@pytest.mark.parametrize('mode', Protocol.Mode)
+@pytest.mark.parametrize('mode', Mode)
 async def test_modes(mode):
     """Confirm setting/getting modes works."""
     async with Pump('fakeip') as device:
@@ -138,10 +138,10 @@ async def test_setpoint_type_roundtrip():
     """Confirm changing between flow and speed setpoint works."""
     async with Pump('fakeip') as device:
         channel = choice([1, 2, 3, 4])
-        await device.set_setpoint_type(channel, Protocol.Setpoint.RPM)
-        assert await device.get_setpoint_type(channel) == Protocol.Setpoint.RPM
-        await device.set_setpoint_type(channel, Protocol.Setpoint.FLOWRATE)
-        assert await device.get_setpoint_type(channel) == Protocol.Setpoint.FLOWRATE
+        await device.set_setpoint_type(channel, Setpoint.RPM)
+        assert await device.get_setpoint_type(channel) == Setpoint.RPM
+        await device.set_setpoint_type(channel, Setpoint.FLOWRATE)
+        assert await device.get_setpoint_type(channel) == Setpoint.FLOWRATE
 
 
 async def test_speed_roundtrip():
@@ -237,7 +237,7 @@ async def test_calculated_dispense_time():
 # Configuration
 
 
-@pytest.mark.parametrize('tubing', Protocol.Tubing[::10])
+@pytest.mark.parametrize('tubing', Tubing[::10])
 async def test_tubing_diameter_roundtrip(tubing):
     """Confirm setting/getting the tubing Inner Diameter (ID) works."""
     async with Pump('fakeip') as device:
@@ -259,10 +259,10 @@ async def test_backsteps_roundtrip():
 async def test_reset():
     """Confirm resetting user-configurable data works."""
     async with Pump('fakeip') as device:
-        await device.set_rotation(1, rotation=Protocol.Rotation.COUNTERCLOCKWISE)
-        assert Protocol.Rotation.COUNTERCLOCKWISE == await device.get_rotation(1)
+        await device.set_rotation(1, rotation=Rotation.COUNTERCLOCKWISE)
+        assert Rotation.COUNTERCLOCKWISE == await device.get_rotation(1)
         await device.reset_default_settings()
-        assert Protocol.Rotation.CLOCKWISE == await device.get_rotation(1)
+        assert Rotation.CLOCKWISE == await device.get_rotation(1)
 
 
 #  Calibration (not implemented)
