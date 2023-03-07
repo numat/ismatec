@@ -23,6 +23,9 @@ class Communicator(threading.Thread):
     It handles the communication via direct serial or through a serial
     server, and keeps track of the messy mix of synchronous (command)
     and asynchronous (status) communication.
+
+    This communicator uses a threaded queue to provide non-blocking
+    serial communication. TODO explore async serial development.
     """
 
     def __init__(self, address=None, baudrate=9600, data_bits=8, stop_bits=1,
@@ -103,7 +106,7 @@ class Communicator(threading.Thread):
 
     @abstractmethod
     def close(self):
-        """Override in subclass."""
+        """Close the connection."""
         pass
 
     def join(self, timeout=None):
