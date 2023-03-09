@@ -54,11 +54,11 @@ class Communicator(threading.Thread):
 
     def set_running_status(self, status, channel):
         """Manually set running status."""
-        if type(channel) == list or type(channel) == tuple:
+        if type(channel) == list:
             logger.debug(f'manually setting running status {status} on channels {channel}')
             for ch in channel:
                 self.running[ch] = status
-        elif channel == 0:
+        elif channel == []:
             logger.debug(f'manually setting running status {status} on all channels (found %s)' %
                          list(self.running.keys()))
             for ch in list(self.running.keys()):

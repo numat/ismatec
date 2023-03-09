@@ -4,6 +4,7 @@ Distributed under the GNU General Public License v3
 Copyright (C) 2022 NuMat Technologies
 """
 import logging
+from typing import Dict
 
 from .util import (Communicator, Mode, Rotation, SerialCommunicator, Setpoint,
                    SocketCommunicator, pack_discrete2, pack_discrete3,
@@ -41,13 +42,12 @@ class Pump:
         # Disable asynchronous messages
         self.hw.command('1xE0')
 
-        # list of channel indices for iteration and checking
-        self.nChannels = self.get_number_channels()
-        self.channels = list(range(1, self.nChannels + 1))
-
-        # initial running states
-        for ch in self.channels:
-            self.hw.command(f'{ch}I')
+        # Get channel indices for request validation
+        self.channels = self.get_channels()
+        # Set initial running states and manually update cache
+        for channel in self.channels:
+            self.hw.command(f'{channel}I')
+        self.running: Dict[int, bool] = {}
         self.hw.set_running_status(False, self.channels)
 
     async def __aenter__(self):
@@ -95,15 +95,16 @@ class Pump:
         assert channel in self.channels
         return self.hw.command(f'{channel}{mode.value}')
 
-    def get_number_channels(self) -> int:
-        """Get the number of (currently configured) pump channels.
+    def get_channels(self) -> list:
+        """Get a list of available channel options.
 
-        Return 0 if the pump is not configured for independent channels.
+        Return [] if the pump is not configured for independent channels.
         """
         try:
-            return int(self.hw.query('1xA'))
+            number_of_channels = int(self.hw.query('1xA'))
+            return list(range(1, number_of_channels + 1))
         except ValueError:
-            return 0
+            return []
 
     async def get_tubing_inner_diameter(self, channel: int) -> float:
         """Get the peristaltic tubing inner diameter (mm) of a channel."""
