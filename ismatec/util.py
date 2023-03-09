@@ -77,8 +77,6 @@ class Communicator(threading.Thread):
         """Place a command in the request queue and return the response."""
         logger.debug(f"writing command '{cmd}' to {self.address}")
         self.req_q.put(cmd)
-        if len(cmd) > 1 and cmd[-1] in ['H']:
-            time.sleep(0.5)
         result = self.res_q.get()
         if result == '*':
             return True
@@ -125,26 +123,38 @@ class SerialCommunicator(Communicator):
         assert type(self.address) == str
         self.ser = serial.Serial(self.address, **self.serial_details)
 
+    def read(self, length: int):
+        """Read a fixed number of bytes from the device."""
+        return self.ser.read(length)
+
+    def readline(self):
+        """Read until a LF terminator."""
+        self.ser.readline().strip()
+
+    def write(self, message: str):
+        """Write a message to the device."""
+        self.ser.write(message.encode() + b'\r')
+
     def loop(self):
         """Do the repetitive work."""
         # deal with commands and queries found in the request queue
         if self.req_q.qsize():
             # disable asynchronous communication
-            self.command(b'1xE0\r')
-            self.ser.read(1)
+            self.write('1xE0')
+            self.read(1)
             # empty the ingoing buffer
-            flush = self.ser.read(100)
+            flush = self.read(100)
             if flush:
                 logger.debug(f'flushed garbage before query: "{flush!r}"')
             # write command and get result
             cmd = self.req_q.get()
-            self.command(cmd.encode() + b'\r')
-            res = self.ser.readline().strip()
+            self.write(cmd)
+            res = self.readline()
             self.res_q.put(res)
             # enable asynchronous communication again
-            self.command(b'1xE1\r')
-            self.ser.read(1)
-        line = self.ser.readline()
+            self.write('1xE1')
+            self.read(1)
+        line = self.readline()
         if len(line):
             # check for running message
             if line[:2] == '^U':
@@ -162,30 +172,34 @@ class SerialCommunicator(Communicator):
 class SocketCommunicator(Communicator):
     """Communicator using a TCP/IP<=>serial gateway."""
 
-    def init(self):
+    def init(self, timeout=0.1):
         """Initialize socket."""
         assert type(self.address) == tuple
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect(self.address)
+        self.timeout = timeout
 
-    def timeout_recv(self, size):
-        """Receive <size> characters from the socket, with a timeout."""
-        ready = select.select([self.socket], [], [], self.serial_details['timeout'])
+    def write(self, message: str):
+        """Write a message to the device."""
+        self.socket.send(message.encode() + b'\r')
+
+    def read(self, length: int):
+        """Read a fixed number of bytes from the device."""
+        ready = select.select([self.socket], [], [], self.timeout)
         if ready[0]:
-            # decode from bytes to str (default ASCII)
-            return self.socket.recv(size).decode()
+            return self.socket.recv(length).decode()
         return ''
 
     def readline(self):
-        r"""Read serial characters continuously until \r\n or *."""
+        """Read until a LF terminator."""
         msg = ''
         t0 = time.time()
         while True:
-            char = self.timeout_recv(1)
+            char = self.read(1)
             msg += char
-            if msg.endswith('\r\n') or msg.endswith('*'):
-                break
-            if time.time() - t0 > self.serial_details['timeout']:
+            is_complete = char == '\n'
+            is_timed_out = time.time() - t0 > self.timeout
+            if is_complete or is_timed_out:
                 break
         return msg
 
@@ -194,32 +208,29 @@ class SocketCommunicator(Communicator):
         # deal with commands and queries found in the request queue
         if self.req_q.qsize():
             # disable asynchronous communication
-            self.socket.send(b'1xE0\r')
-            self.timeout_recv(1)
+            self.write('1xE0')
+            self.read(1)
             # empty the ingoing buffer
-            flush = self.timeout_recv(100)
+            flush = self.read(100)
             if flush:
                 logger.debug(f'flushed garbage before query: "{flush}"')
             # write command and get result
             cmd = self.req_q.get()
-            self.socket.send(cmd.encode() + b'\r')
-            res = self.readline().strip()
+            self.write(cmd)
+            res = self.readline()
             self.res_q.put(res)
             # enable asynchronous communication again
-            self.socket.send(b'1xE1\r')
-            self.timeout_recv(1)
+            self.write('1xE1')
+            self.read(1)
         line = self.readline()
         if line:
             # check for running message
-            try:
-                if line[:2] == '^U':
-                    ch = int(line[2])
-                    self.running[ch] = True
-                elif line[:2] == '^X':
-                    ch = int(line[2])
-                    self.running[ch] = False
-            except IndexError:
-                logger.debug(f'received message: "{line}"')
+            if line[:2] == '^U':
+                ch = int(line[2])
+                self.running[ch] = True
+            elif line[:2] == '^X':
+                ch = int(line[2])
+                self.running[ch] = False
 
     def close(self):
         """Release resources."""
