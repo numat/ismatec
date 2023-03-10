@@ -10,6 +10,7 @@ import threading
 import time
 from abc import abstractmethod
 from enum import Enum
+from typing import Dict
 from queue import Queue
 
 import serial
@@ -28,9 +29,8 @@ class Communicator(threading.Thread):
     serial communication. TODO explore async serial development.
     """
 
-    def __init__(self, address=None, baudrate=9600, data_bits=8, stop_bits=1,
-                 parity='N', timeout=.05):
-        """Initialize the serial link and create queues for commands and responses."""
+    def __init__(self):
+        """Initialize the communications link and create queues for commands and responses."""
         super(Communicator, self).__init__()
         self._stop_event = threading.Event()
 
@@ -39,18 +39,9 @@ class Communicator(threading.Thread):
         self.res_q: Queue = Queue()
 
         # dictionary of channel running status
-        self.running = {}
+        self.running: Dict[int, bool] = {}
 
-        # parse options
-        self.address = address
-        self.serial_details = {'baudrate': baudrate,
-                               'bytesize': data_bits,
-                               'stopbits': stop_bits,
-                               'parity': parity,
-                               'timeout': timeout}
-
-        # initialize communication
-        self.init()
+        self.address = None
 
     def set_running_status(self, status, channel):
         """Manually set running status."""
@@ -72,8 +63,9 @@ class Communicator(threading.Thread):
         while not self._stop_event.is_set():
             self.loop()
         self.close()
+        # self.join()
 
-    def command(self, cmd):
+    def command(self, cmd) -> bool:
         """Place a command in the request queue and return the response."""
         logger.debug(f"writing command '{cmd}' to {self.address}")
         self.req_q.put(cmd)
@@ -84,124 +76,13 @@ class Communicator(threading.Thread):
             logger.debug(f'WARNING: command {cmd} returned {result}')
             return False
 
-    def query(self, cmd):
+    def query(self, cmd) -> str:
         """Place a query in the request queue and return the response."""
         logger.debug(f"writing query '{cmd}' to {self.address}")
         self.req_q.put(cmd)
         result = self.res_q.get().strip()
         logger.debug(f"got response '{result}'")
         return result
-
-    @abstractmethod
-    def init(self):
-        """Override in subclass."""
-        pass
-
-    @abstractmethod
-    def loop(self):
-        """Override in subclass."""
-        pass
-
-    @abstractmethod
-    def close(self):
-        """Close the connection."""
-        pass
-
-    def join(self, timeout=None):
-        """Stop the thread."""
-        logger.debug('joining communications thread...')
-        self._stop_event.set()
-        super(Communicator, self).join(timeout)
-        logger.debug('...done')
-
-
-class SerialCommunicator(Communicator):
-    """Communicator using a directly-connected RS232 serial device."""
-
-    def init(self):
-        """Initialize serial port."""
-        assert type(self.address) == str
-        self.ser = serial.Serial(self.address, **self.serial_details)
-
-    def read(self, length: int):
-        """Read a fixed number of bytes from the device."""
-        return self.ser.read(length)
-
-    def readline(self):
-        """Read until a LF terminator."""
-        self.ser.readline().strip()
-
-    def write(self, message: str):
-        """Write a message to the device."""
-        self.ser.write(message.encode() + b'\r')
-
-    def loop(self):
-        """Do the repetitive work."""
-        # deal with commands and queries found in the request queue
-        if self.req_q.qsize():
-            # disable asynchronous communication
-            self.write('1xE0')
-            self.read(1)
-            # empty the ingoing buffer
-            flush = self.read(100)
-            if flush:
-                logger.debug(f'flushed garbage before query: "{flush!r}"')
-            # write command and get result
-            cmd = self.req_q.get()
-            self.write(cmd)
-            res = self.readline()
-            self.res_q.put(res)
-            # enable asynchronous communication again
-            self.write('1xE1')
-            self.read(1)
-        line = self.readline()
-        if len(line):
-            # check for running message
-            if line[:2] == '^U':
-                ch = int(line[2])
-                self.running[ch] = True
-            elif line[:2] == '^X':
-                ch = int(line[2])
-                self.running[ch] = False
-
-    def close(self):
-        """Release resources."""
-        self.ser.close()
-
-
-class SocketCommunicator(Communicator):
-    """Communicator using a TCP/IP<=>serial gateway."""
-
-    def init(self, timeout=0.1):
-        """Initialize socket."""
-        assert type(self.address) == tuple
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect(self.address)
-        self.timeout = timeout
-
-    def write(self, message: str):
-        """Write a message to the device."""
-        self.socket.send(message.encode() + b'\r')
-
-    def read(self, length: int):
-        """Read a fixed number of bytes from the device."""
-        ready = select.select([self.socket], [], [], self.timeout)
-        if ready[0]:
-            return self.socket.recv(length).decode()
-        return ''
-
-    def readline(self):
-        """Read until a LF terminator."""
-        msg = ''
-        t0 = time.time()
-        while True:
-            char = self.read(1)
-            msg += char
-            is_complete = char == '\n'
-            is_timed_out = time.time() - t0 > self.timeout
-            if is_complete or is_timed_out:
-                break
-        return msg
 
     def loop(self):
         """Do the repetitive work."""
@@ -231,6 +112,103 @@ class SocketCommunicator(Communicator):
             elif line[:2] == '^X':
                 ch = int(line[2])
                 self.running[ch] = False
+
+    @abstractmethod
+    def write(self, message):
+        """Write a message to the device."""
+        pass
+
+    @abstractmethod
+    def read(self, length):
+        """Read a fixed number of bytes from the device."""
+        pass
+
+    @abstractmethod
+    def readline(self):
+        """Read until a LF terminator."""
+        pass
+
+    @abstractmethod
+    def close(self):
+        """Close the connection."""
+        pass
+
+    def join(self, timeout=None):
+        """Stop the thread."""
+        logger.debug('joining communications thread...')
+        self._stop_event.set()
+        super(Communicator, self).join(timeout)
+        logger.debug('...done')
+
+
+class SerialCommunicator(Communicator):
+    """Communicator using a directly-connected RS232 serial device."""
+
+    def __init__(self, address=None, baudrate=9600, data_bits=8, stop_bits=1,
+                 parity='N', timeout=.05):
+        """Initialize serial port."""
+        super(SerialCommunicator, self).__init__()
+        self.address = address
+        self.serial_details = {'baudrate': baudrate,
+                               'bytesize': data_bits,
+                               'stopbits': stop_bits,
+                               'parity': parity,
+                               'timeout': timeout}
+        assert type(self.address) == str
+        self.ser = serial.Serial(self.address, **self.serial_details)
+
+    def read(self, length: int):
+        """Read a fixed number of bytes from the device."""
+        return self.ser.read(length)
+
+    def readline(self):
+        """Read until a LF terminator."""
+        self.ser.readline().strip()
+
+    def write(self, message: str):
+        """Write a message to the device."""
+        self.ser.write(message.encode() + b'\r')
+
+    def close(self):
+        """Release resources."""
+        self.ser.close()
+
+
+class SocketCommunicator(Communicator):
+    """Communicator using a TCP/IP<=>serial gateway."""
+
+    def __init__(self, address, timeout=0.1):
+        """Initialize socket."""
+        super(SocketCommunicator, self).__init__()
+        self.address = address
+        assert type(self.address) == tuple
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect(self.address)
+        self.timeout = timeout
+
+    def write(self, message: str):
+        """Write a message to the device."""
+        self.socket.send(message.encode() + b'\r')
+
+    def read(self, length: int):
+        """Read a fixed number of bytes from the device."""
+        ready = select.select([self.socket], [], [], self.timeout)
+        if ready[0]:
+            return self.socket.recv(length).decode()
+        return ''
+
+    def readline(self):
+        """Read until a LF terminator."""
+        msg = ''
+        t0 = time.time()
+        while True:
+            char = self.read(1)
+            msg += char
+            is_complete = char == '\n'
+            is_timed_out = time.time() - t0 > self.timeout
+            if is_complete or is_timed_out:
+                break
+        return msg
 
     def close(self):
         """Release resources."""
