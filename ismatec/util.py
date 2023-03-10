@@ -3,13 +3,14 @@
 Distributed under the GNU General Public License v3
 Copyright (C) 2022 NuMat Technologies
 """
-from enum import Enum
 import logging
 import select
 import socket
 import threading
 import time
 from abc import abstractmethod
+from enum import Enum
+from typing import Dict
 from queue import Queue
 
 import serial
@@ -29,22 +30,37 @@ class Communicator(threading.Thread):
     """
 
     def __init__(self):
-        """Create queues for commands and responses."""
+        """Initialize the communications link and create queues for commands and responses."""
         super(Communicator, self).__init__()
         self._stop_event = threading.Event()
-        self.requests: Queue = Queue()
-        self.responses: Queue = Queue()
+
+        # internal request and response queues
+        self.req_q: Queue = Queue()
+        self.res_q: Queue = Queue()
+
+        # dictionary of channel running status
+        self.running: Dict[int, bool] = {}
+
+        self.address = None
 
     def run(self):
         """Run continuously until threading.Event fires."""
         while not self._stop_event.is_set():
             self.loop()
         self.close()
-        self.join()
+
+    def query(self, cmd) -> str:
+        """Place a query in the request queue and return the response."""
+        self.requests.put(request)
+        # H requests change device flow, needing a longer timeout
+        if request.endswith('H'):
+            time.sleep(0.5)
+        return self.responses.get()
 
     def loop(self):
-        """Process a queued request. Run in a non-blocking loop."""
-        if self.requests.qsize():
+        """Do the repetitive work."""
+        # deal with commands and queries found in the request queue
+        if self.req_q.qsize():
             # disable asynchronous communication
             self.write('1xE0')
             self.read(1)
@@ -53,30 +69,22 @@ class Communicator(threading.Thread):
             if flush:
                 logger.debug(f'flushed garbage before query: "{flush}"')
             # write command and get result
-            cmd = self.requests.get()
+            cmd = self.req_q.get()
             self.write(cmd)
             res = self.readline()
-            self.responses.put(res)
+            self.res_q.put(res)
             # enable asynchronous communication again
             self.write('1xE1')
             self.read(1)
-        # check to see if device is running
         line = self.readline()
         if line:
+            # check for running message
             if line[:2] == '^U':
                 ch = int(line[2])
                 self.running[ch] = True
             elif line[:2] == '^X':
                 ch = int(line[2])
                 self.running[ch] = False
-
-    def query(self, request):
-        """Place a query in the request queue and return the response."""
-        self.requests.put(request)
-        # H requests change device flow, needing a longer timeout
-        if request.endswith('H'):
-            time.sleep(0.5)
-        return self.responses.get()
 
     @abstractmethod
     def write(self, message):
@@ -109,17 +117,17 @@ class Communicator(threading.Thread):
 class SerialCommunicator(Communicator):
     """Communicator using a directly-connected RS232 serial device."""
 
-    def __init__(self, address, timeout=.05):
+    def __init__(self, address=None, baudrate=9600, data_bits=8, stop_bits=1,
+                 parity='N', timeout=.05):
         """Initialize the serial link and create queues for commands and responses."""
         super(SerialCommunicator, self).__init__()
-        self.ser = serial.Serial(
-            address,
-            baudrate=9600,
-            bytesize=8,
-            parity='N',
-            stopbits=1,
-        )
-
+        self.serial_details = {'baudrate': baudrate,
+                               'bytesize': data_bits,
+                               'stopbits': stop_bits,
+                               'parity': parity,
+                               'timeout': timeout}
+        self.address = address
+        self.ser = serial.Serial(self.address, **self.serial_details)
     def write(self, message: str):
         """Write a message to the device."""
         self.ser.write(message.encode() + b'\r')
@@ -131,6 +139,10 @@ class SerialCommunicator(Communicator):
     def readline(self):
         """Read until a LF terminator."""
         self.ser.readline().strip()
+
+    def write(self, message: str):
+        """Write a message to the device."""
+        self.ser.write(message.encode() + b'\r')
 
     def close(self):
         """Release resources."""
