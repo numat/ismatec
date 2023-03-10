@@ -1,4 +1,4 @@
-"""Transports and Protocol for Ismatec Reglo ICC peristaltic pump.
+"""Transports and helpers for Ismatec Reglo ICC peristaltic pump.
 
 Distributed under the GNU General Public License v3
 Copyright (C) 2022 NuMat Technologies
@@ -63,7 +63,6 @@ class Communicator(threading.Thread):
         while not self._stop_event.is_set():
             self.loop()
         self.close()
-        # self.join()
 
     def command(self, cmd) -> bool:
         """Place a command in the request queue and return the response."""
