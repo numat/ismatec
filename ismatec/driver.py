@@ -45,6 +45,7 @@ class Pump:
         self.hw.query('1~1')
         # Disable asynchronous messages
         self.hw.query('1xE0')
+
         # Get channel indices for request validation
         self.channels = self.get_channels()
         # Set initial running states and manually update cache
@@ -75,7 +76,7 @@ class Pump:
     async def set_flow_rate(self, channel: int, flowrate):
         """Set the flow rate of the specified channel."""
         assert channel in self.channels
-        flow = pack_volume2(flowrate)  # TODO Clearer explanation of datatypes
+        flow = pack_volume2(flowrate)
         self.hw.query(f'{channel}f{flow}')
 
     async def get_flow_rate(self, channel: int) -> float:
@@ -152,6 +153,7 @@ class Pump:
         return self.hw.query(f'{channel}v{pack_volume2(vol)}')
 
     async def get_rotation(self, channel: int) -> Rotation:  # Don't like this
+
         """Return the rotation direction on the specified channel."""
         assert channel in self.channels
         rotation_code = self.hw.query(f'{channel}xD')
