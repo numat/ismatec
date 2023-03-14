@@ -179,10 +179,12 @@ class SocketCommunicator(Communicator):
     def __init__(self, address, timeout=0.1):
         """Initialize socket."""
         super(SocketCommunicator, self).__init__()
-        self.address = address
-        assert type(self.address) == tuple
+        try:
+            address, port = address.split(':')
+        except ValueError:
+            raise ValueError('address must be hostname:port')
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect(self.address)
+        self.socket.connect((address, int(port)))
         self.timeout = timeout
 
     def write(self, message: str):

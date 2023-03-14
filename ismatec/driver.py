@@ -27,14 +27,10 @@ class Pump:
             logger.setLevel(logging.DEBUG)
         """Initialize the Communicator and setup the pump to accept commands."""
         # make a hardware Communicator object
-        if type(address) == str:
-            # serial
+        if address.startswith('/dev') or address.startswith('COM'):  # serial
             self.hw: Communicator = SerialCommunicator(address=address, **kwargs)
-        elif type(address) == tuple and len(address) == 2:
-            # socket
-            self.hw = SocketCommunicator(address=address, **kwargs)
         else:
-            raise RuntimeError('Specify serial device or (host, port) tuple!')
+            self.hw = SocketCommunicator(address=address, **kwargs)
         self.hw.start()
 
         # Enable independent channel addressing
