@@ -14,14 +14,15 @@ def command_line(args=None):
 
     parser = argparse.ArgumentParser(description="Control a RegloICC pump"
                                      "from the command line.")
-    parser.add_argument('address', nargs='?', default='/dev/ttyUSB0',
-                        help="The target serial port or TCP address.")
+    parser.add_argument('address', nargs='?', default='/dev/ttyUSB0', help="The "
+                        "target serial port or TCP address:port. Default "
+                        "'/dev/ttyUSB0'.")
     parser.add_argument('--channel', '-c', default=None, type=int,
                         help="Specify channel in case of multi-channel pump.")
     args = parser.parse_args(args)
 
     async def run():
-        async with Pump(address=args.address) as pump:
+        async with Pump(address=(args.address), timeout=.2) as pump:
             d = await pump.get_flow_rate(args.channel)
             print(json.dumps(d, indent=4))
 

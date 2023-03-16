@@ -18,8 +18,8 @@ Usage
 ## Command Line
 
 ```
-$ ismatec /dev/ttyUSB0 --channel 2
-$ ismatec tcp://192.168.1.100:23 --channel 1
+$ ismatec /dev/ttyUSB0 --channel 1
+$ ismatec <serial-to-ethernet-ip>:<port> --channel 2
 ```
 
 This will print the current flow rate for the selected channel, using either the serial port or an ethernet-to-serial adapter.
@@ -33,8 +33,8 @@ import asyncio
 from ismatec import Pump
 
 async def get():
-    async with Pump('tcp://192.160.1.100:23') as pump:
-        print(await pump.get_version())
+    async with Pump('/dev/ttyUSB0') as pump:
+        print(await pump.get_pump_version())
 
 asyncio.run(get())
 ```

@@ -156,6 +156,12 @@ class SocketCommunicator(Communicator):
         """Initialize socket."""
         assert address.startswith('tcp://')
         super(SocketCommunicator, self).__init__()
+        try:
+            address, port = address.split(':')
+        except ValueError:
+            raise ValueError('address must be hostname:port')
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect((address, int(port)))
         self.timeout = timeout
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect(address)

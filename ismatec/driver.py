@@ -26,7 +26,7 @@ class Pump:
         """Connect to the pump and set initial state.
 
         This optionally takes an address of the form
-            tcp://<<address>>:<<port>>
+            <<address>>:<<port>>
         to talk to connected serial-to-ethernet converters.
 
         Note that initialization sends multiple requests to the pump:
@@ -35,11 +35,11 @@ class Pump:
         3. Get list of all available tube channels. (TODO why?)
         4. Set initial running states (TODO why? to what?)
         """
-        if address.startswith('tcp://'):
-            ip, port = address[6:].split(':')
-            self.hw: Communicator = SocketCommunicator(address=(ip, int(port)), **kwargs)
+        if address.startswith('/dev') or address.startswith('COM'):  # serial
+            self.hw: Communicator = SerialCommunicator(address=address, **kwargs)
         else:
-            self.hw = SerialCommunicator(address=address, **kwargs)
+            self.hw = SocketCommunicator(address=address, **kwargs)
+        self.hw.start()
 
         # Enable independent channel addressing
         self.hw.query('1~1')

@@ -8,7 +8,7 @@ from ismatec import command_line
 from ismatec.mock import Pump
 from ismatec.util import Mode, Rotation, Setpoint, Tubing
 
-ADDRESS = ('192.168.10.12', 23)
+ADDRESS = '192.168.10.12:23'
 # ADDRESS = '/dev/tty.usbserial-FTCJ5EK9'
 
 
@@ -22,7 +22,7 @@ def driver():
 @mock.patch('ismatec.Pump', Pump)
 def test_driver_cli(capsys, channel):
     """Confirm the commandline interface works with different channels."""
-    command_line(['fakeip', '--port', '126', '--channel', channel])
+    command_line([ADDRESS, '--channel', channel])
     captured = capsys.readouterr()
     assert ("0.0" in captured.out or f"{channel}.0" in captured.out)
 
