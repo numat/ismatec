@@ -28,23 +28,20 @@ class Pump:
         """Initialize the Communicator and setup the pump to accept commands."""
         # make a hardware Communicator object
         if address.startswith('/dev') or address.startswith('COM'):  # serial
-            self.hw: Communicator = SerialCommunicator(address=address, **kwargs)
+            self.hw: Communicator = SerialCommunicator(address=address,
+                                                       running_callback=self._set_running_status,
+                                                       **kwargs)
         else:
-            self.hw = SocketCommunicator(address=address, **kwargs)
+            self.hw = SocketCommunicator(address=address,
+                                         running_callback=self._set_running_status, **kwargs)
         self.hw.start()
-
+        self.running: Dict[int, bool] = {}
         # Enable independent channel addressing
         self.hw.command('1~1')
-        # Disable asynchronous messages
-        self.hw.command('1xE0')
-
         # Get channel indices for request validation
         self.channels = self.get_channels()
-        # Set initial running states and manually update cache
-        for channel in self.channels:
-            self.hw.command(f'{channel}I')
-        self.running: Dict[int, bool] = {}
-        self.hw.set_running_status(False, self.channels)
+        # Set initial running states to False (they will 'hopefully' be updated by a async message)
+        self._set_running_status(False, self.channels)
 
     async def __aenter__(self):
         """Asynchronously connect with the context manager."""
@@ -53,6 +50,21 @@ class Pump:
     async def __aexit__(self, *args):
         """Provide exit to the context manager."""
         self.hw._stop_event.set()
+
+    def _set_running_status(self, status, channel):
+        """Manually set running status."""
+        if type(channel) == list:
+            logger.debug(f'manually setting running status {status} on channels {channel}')
+            for ch in channel:
+                self.running[ch] = status
+        elif channel == []:
+            logger.debug(f'manually setting running status {status} on all channels (found %s)' %
+                         list(self.running.keys()))
+            for ch in list(self.running.keys()):
+                self.running[ch] = status
+        else:
+            logger.debug(f'manually setting running status {status} on channel {channel}')
+            self.running[channel] = status
 
     async def get_pump_version(self) -> str:
         """Return the pump model, firmware version, and pump head type code."""
@@ -75,10 +87,13 @@ class Pump:
         return float(reply) / 1000 if reply else 0
 
     async def is_running(self, channel: int) -> bool:
-        """Return if the specified channel is running."""
+        """Return if the specified channel is running (probably).
+
+        Note there is no way to directty query a single channel.
+        The command 'E' returns the running status for the _entire_ pump.
+        """
         assert channel in self.channels
-        # self.hw.running[channel] = self.hw.query(f'{channel}E') == '+'
-        return self.hw.running[channel]
+        return self.running[channel]
 
     async def get_mode(self, channel: int) -> str:
         """Get the mode of the specified channel."""
@@ -214,7 +229,7 @@ class Pump:
             rate = rate / abs(rate) * maxrate
         self.hw.query(f'{channel}f{pack_volume2(rate)}')
         # make sure the running status gets set from the start
-        self.hw.set_running_status(True, channel)
+        self._set_running_status(True, channel)
         # start
         self.hw.command(f'{channel}H')
 
@@ -258,7 +273,7 @@ class Pump:
         # set volume
         self.hw.query(f'{channel}v{pack_volume2(vol)}')
         # make sure the running status gets set from the start to avoid later Sardana troubles
-        self.hw.set_running_status(True, channel)
+        self._set_running_status(True, channel)
         # start
         self.hw.command(f'{channel}H')
 
@@ -278,7 +293,7 @@ class Pump:
         # set time.  Note: if the time is too short, the pump will not start.
         self.hw.query(f"{channel}xT{pack_time2(time, units='m')}")
         # make sure the running status gets set from the start to avoid later Sardana troubles
-        self.hw.set_running_status(True, channel)
+        self._set_running_status(True, channel)
         # start
         self.hw.command(f'{channel}H')
 
@@ -300,7 +315,7 @@ class Pump:
         # set time.  Note: if the time is too short, the pump will not start.
         self.hw.query(f"{channel}xT{pack_time2(time, units='m')}")
         # make sure the running status gets set from the start
-        self.hw.set_running_status(True, channel)
+        self._set_running_status(True, channel)
         # start
         self.hw.command(f'{channel}H')
 
@@ -309,7 +324,7 @@ class Pump:
         assert channel in self.channels
         # doing this misses the asynchronous start signal, so set manually
         result = self.hw.command(f'{channel}H')
-        self.hw.set_running_status(result, channel)
+        self._set_running_status(result, channel)
         return result
 
     async def stop(self, channel: int):
@@ -318,5 +333,5 @@ class Pump:
         assert channel in self.channels
         # doing this misses the asynchronous stop signal, so set manually
         result = self.hw.command(f'{channel}I')
-        self.hw.set_running_status(not result, channel)
+        self._set_running_status(not result, channel)
         return result

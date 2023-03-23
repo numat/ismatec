@@ -29,7 +29,7 @@ class Communicator(threading.Thread):
     serial communication. TODO explore async serial development.
     """
 
-    def __init__(self):
+    def __init__(self, running_callback):
         """Initialize the communications link and create queues for commands and responses."""
         super(Communicator, self).__init__()
         self._stop_event = threading.Event()
@@ -40,23 +40,8 @@ class Communicator(threading.Thread):
 
         # dictionary of channel running status
         self.running: Dict[int, bool] = {}
-
+        self.running_callback = running_callback
         self.address = None
-
-    def set_running_status(self, status, channel):
-        """Manually set running status."""
-        if type(channel) == list:
-            logger.debug(f'manually setting running status {status} on channels {channel}')
-            for ch in channel:
-                self.running[ch] = status
-        elif channel == []:
-            logger.debug(f'manually setting running status {status} on all channels (found %s)' %
-                         list(self.running.keys()))
-            for ch in list(self.running.keys()):
-                self.running[ch] = status
-        else:
-            logger.debug(f'manually setting running status {status} on channel {channel}')
-            self.running[channel] = status
 
     def run(self):
         """Run continuously until threading.Event fires."""
@@ -106,11 +91,17 @@ class Communicator(threading.Thread):
         if line:
             # check for running message
             if line[:2] == '^U':
-                ch = int(line[2])
-                self.running[ch] = True
+                channel = int(line[2])
+                if self.running_callback is not None:
+                    self.running_callback(True, channel)
+                else:
+                    logger.info('Received pump running message')
             elif line[:2] == '^X':
-                ch = int(line[2])
-                self.running[ch] = False
+                channel = int(line[2])
+                if self.running_callback is not None:
+                    self.running_callback(False, channel)
+                else:
+                    logger.info('Received pump stopped message')
 
     @abstractmethod
     def write(self, message):
@@ -144,9 +135,9 @@ class SerialCommunicator(Communicator):
     """Communicator using a directly-connected RS232 serial device."""
 
     def __init__(self, address=None, baudrate=9600, timeout=.15, bytesize=serial.EIGHTBITS,
-                 stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE):
+                 stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE, running_callback=None):
         """Initialize serial port."""
-        super(SerialCommunicator, self).__init__()
+        super(SerialCommunicator, self).__init__(running_callback)
         self.address = address
         self.serial_details = {'baudrate': baudrate,
                                'bytesize': bytesize,
@@ -176,9 +167,9 @@ class SerialCommunicator(Communicator):
 class SocketCommunicator(Communicator):
     """Communicator using a TCP/IP<=>serial gateway."""
 
-    def __init__(self, address, timeout=0.1):
+    def __init__(self, address, running_callback, timeout=0.1):
         """Initialize socket."""
-        super(SocketCommunicator, self).__init__()
+        super(SocketCommunicator, self).__init__(running_callback)
         try:
             address, port = address.split(':')
         except ValueError:
