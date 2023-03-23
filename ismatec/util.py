@@ -143,14 +143,14 @@ class Communicator(threading.Thread):
 class SerialCommunicator(Communicator):
     """Communicator using a directly-connected RS232 serial device."""
 
-    def __init__(self, address=None, baudrate=9600, data_bits=8, stop_bits=1,
-                 parity='N', timeout=.05):
+    def __init__(self, address=None, baudrate=9600, timeout=.15, bytesize=serial.EIGHTBITS,
+                 stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE):
         """Initialize serial port."""
         super(SerialCommunicator, self).__init__()
         self.address = address
         self.serial_details = {'baudrate': baudrate,
-                               'bytesize': data_bits,
-                               'stopbits': stop_bits,
+                               'bytesize': bytesize,
+                               'stopbits': stopbits,
                                'parity': parity,
                                'timeout': timeout}
         assert type(self.address) == str
@@ -158,11 +158,11 @@ class SerialCommunicator(Communicator):
 
     def read(self, length: int):
         """Read a fixed number of bytes from the device."""
-        return self.ser.read(length)
+        return self.ser.read(length).decode()
 
     def readline(self):
         """Read until a LF terminator."""
-        self.ser.readline().strip()
+        return self.ser.readline().strip().decode()
 
     def write(self, message: str):
         """Write a message to the device."""
