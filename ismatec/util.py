@@ -3,6 +3,8 @@
 Distributed under the GNU General Public License v3
 Copyright (C) 2022 NuMat Technologies
 """
+from __future__ import annotations
+
 import logging
 import select
 import socket
@@ -10,7 +12,6 @@ import threading
 import time
 from abc import abstractmethod
 from enum import Enum
-from typing import Dict
 from queue import Queue
 
 import serial
@@ -31,7 +32,7 @@ class Communicator(threading.Thread):
 
     def __init__(self, running_callback):
         """Initialize the communications link and create queues for commands and responses."""
-        super(Communicator, self).__init__()
+        super().__init__()
         self._stop_event = threading.Event()
 
         # internal request and response queues
@@ -39,7 +40,7 @@ class Communicator(threading.Thread):
         self.res_q: Queue = Queue()
 
         # dictionary of channel running status
-        self.running: Dict[int, bool] = {}
+        self.running: dict[int, bool] = {}
         self.running_callback = running_callback
         self.address = None
 
@@ -127,7 +128,7 @@ class Communicator(threading.Thread):
         """Stop the thread."""
         logger.debug('joining communications thread...')
         self._stop_event.set()
-        super(Communicator, self).join(timeout)
+        super().join(timeout)
         logger.debug('...done')
 
 
@@ -137,7 +138,7 @@ class SerialCommunicator(Communicator):
     def __init__(self, address=None, baudrate=9600, timeout=.15, bytesize=serial.EIGHTBITS,
                  stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE, running_callback=None):
         """Initialize serial port."""
-        super(SerialCommunicator, self).__init__(running_callback)
+        super().__init__(running_callback)
         self.address = address
         self.serial_details = {'baudrate': baudrate,
                                'bytesize': bytesize,
@@ -169,7 +170,7 @@ class SocketCommunicator(Communicator):
 
     def __init__(self, address, running_callback, timeout=0.1):
         """Initialize socket."""
-        super(SocketCommunicator, self).__init__(running_callback)
+        super().__init__(running_callback)
         try:
             address, port = address.split(':')
         except ValueError:

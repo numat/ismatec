@@ -3,12 +3,22 @@
 Distributed under the GNU General Public License v3
 Copyright (C) 2022 NuMat Technologies
 """
-import logging
-from typing import Dict
+from __future__ import annotations
 
-from .util import (Communicator, Mode, Rotation, SerialCommunicator, Setpoint,
-                   SocketCommunicator, pack_discrete2, pack_discrete3,
-                   pack_time2, pack_volume2)
+import logging
+
+from .util import (
+    Communicator,
+    Mode,
+    Rotation,
+    SerialCommunicator,
+    Setpoint,
+    SocketCommunicator,
+    pack_discrete2,
+    pack_discrete3,
+    pack_time2,
+    pack_volume2,
+)
 
 logger = logging.getLogger('ismatec')
 
@@ -35,7 +45,7 @@ class Pump:
             self.hw = SocketCommunicator(address=address,
                                          running_callback=self._set_running_status, **kwargs)
         self.hw.start()
-        self.running: Dict[int, bool] = {}
+        self.running: dict[int, bool] = {}
         # Enable independent channel addressing
         self.hw.command('1~1')
         # Get channel indices for request validation

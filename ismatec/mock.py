@@ -7,8 +7,7 @@ Copyright (C) 2022 NuMat Technologies
 from unittest.mock import MagicMock
 
 from ismatec.driver import Pump as RealPump
-from ismatec.util import (Mode, Rotation, Setpoint, Tubing, pack_time1,
-                          pack_volume1)
+from ismatec.util import Mode, Rotation, Setpoint, Tubing, pack_time1, pack_volume1
 
 
 class AsyncClientMock(MagicMock):

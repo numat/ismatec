@@ -1,12 +1,8 @@
 """Python driver for Ismatec Reglo ICC peristaltic pumps."""
-from sys import version_info
 
 from setuptools import setup
 
-if version_info < (3, 8):
-    raise ImportError("This module requires Python >=3.8.")
-
-with open('README.md', 'r') as in_file:
+with open('README.md') as in_file:
     long_description = in_file.read()
 
 setup(
@@ -29,9 +25,7 @@ setup(
             'pytest-cov>=4,<5',
             'pytest-asyncio==0.*',
             'pytest-xdist==3.*',
-            'flake8==6.*',
-            'flake8-docstrings==1.*',
-            'mypy==1.0.1',
+            'mypy==1.2.0',
             'types-pyserial',
         ],
     },
