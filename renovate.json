@@ -3,4 +3,11 @@
   "extends": [
     "config:base"
   ]
+  "timezone": "America/Chicago",
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "automerge": true
+    }
+  ]
 }
