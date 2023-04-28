@@ -173,8 +173,8 @@ class SocketCommunicator(Communicator):
         super().__init__(running_callback)
         try:
             address, port = address.split(':')
-        except ValueError:
-            raise ValueError('address must be hostname:port')
+        except ValueError as e:
+            raise ValueError('address must be hostname:port') from e
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((address, int(port)))
         self.timeout = timeout
