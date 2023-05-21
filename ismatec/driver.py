@@ -53,15 +53,15 @@ class Pump:
         # Set initial running states to False (they will 'hopefully' be updated by a async message)
         self._set_running_status(False, self.channels)
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> Pump:
         """Asynchronously connect with the context manager."""
         return self
 
-    async def __aexit__(self, *args):
+    async def __aexit__(self, *args) -> None:
         """Provide exit to the context manager."""
         self.hw._stop_event.set()
 
-    def _set_running_status(self, status, channel):
+    def _set_running_status(self, status, channel) -> None:
         """Manually set running status."""
         if type(channel) == list:
             logger.debug(f'manually setting running status {status} on channels {channel}')
