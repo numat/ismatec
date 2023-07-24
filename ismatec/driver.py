@@ -99,7 +99,7 @@ class Pump:
     async def is_running(self, channel: int) -> bool:
         """Return if the specified channel is running (probably).
 
-        Note there is no way to directty query a single channel.
+        Note there is no way to directly query a single channel.
         The command 'E' returns the running status for the _entire_ pump.
         """
         assert channel in self.channels
