@@ -63,7 +63,7 @@ class Pump:
 
     def _set_running_status(self, status, channel) -> None:
         """Manually set running status."""
-        if type(channel) == list:
+        if isinstance(channel, list):
             logger.debug(f'manually setting running status {status} on channels {channel}')
             for ch in channel:
                 self.running[ch] = status
