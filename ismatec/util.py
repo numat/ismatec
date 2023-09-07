@@ -145,7 +145,7 @@ class SerialCommunicator(Communicator):
                                'stopbits': stopbits,
                                'parity': parity,
                                'timeout': timeout}
-        assert type(self.address) == str
+        assert isinstance(self.address, str)
         self.ser = serial.Serial(self.address, **self.serial_details)
 
     def read(self, length: int):
