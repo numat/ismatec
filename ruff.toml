@@ -1,5 +1,6 @@
+exclude = ["venv*"]
 line-length = 120
-ignore = [
+lint.ignore = [
     "PLR2004",
     "D104",
     "D107",
@@ -7,8 +8,7 @@ ignore = [
     "PT001",
     "SIM300",  # "yoda conditions"
 ]
-exclude = ["venv*"]
-select = [
+lint.select = [
     "B",    # bandit
     "C",   # complexity
     "D",   # docstrings
@@ -23,5 +23,5 @@ select = [
     "YTT", # flake8-2020
     # "ARG", # flake8-unused args
 ]
-[pydocstyle]
+[lint.pydocstyle]
 convention = "pep257"
