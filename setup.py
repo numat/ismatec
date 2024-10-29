@@ -22,7 +22,7 @@ setup(
     extras_require={
         'test': [
             'pytest>=6,<8',
-            'pytest-cov>=4,<5',
+            'pytest-cov>=6,<7',
             'pytest-asyncio==0.*',
             'pytest-xdist==3.*',
             'mypy==1.13.0',
