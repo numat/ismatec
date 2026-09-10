@@ -27,7 +27,7 @@ setup(
             'pytest-xdist==3.*',
             'mypy==1.14.1',
             'types-pyserial',
-            'ruff==0.4.7',
+            'ruff==0.16.7',
         ],
     },
     entry_points={
